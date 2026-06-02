@@ -1934,12 +1934,14 @@ function onDetailSelect(v) {
   }
 }
 
+function getCrimeValue() {
+  // บันทึก "คดี" = ค่าจาก selectbox (เช่น "ฆ่าผู้อื่น")
+  return document.getElementById('f-detail-select').value || '';
+}
+
 function getDetailValue() {
-  const sel = document.getElementById('f-detail-select').value;
-  const extra = document.getElementById('f-detail').value.trim();
-  if (!sel) return '';
-  if (sel === 'อื่น') return extra ? 'อื่น: ' + extra : 'อื่น';
-  return extra ? sel + ' — ' + extra : sel;
+  // บันทึก "detail" = เฉพาะ textbox รายละเอียดเพิ่มเติม (พฤติการณ์โดยย่อ)
+  return (document.getElementById('f-detail')?.value || '').trim();
 }
 
 function genRef() {
@@ -2021,7 +2023,8 @@ async function saveRecord() {
 
   const rec = {
     ref, date: val('f-date'), time: val('f-time'),
-    location: getLocationValue(), type: selectedType, detail: getDetailValue(),
+    location: getLocationValue(), type: selectedType,
+    crime: getCrimeValue(), detail: getDetailValue(),
     operator: currentOperator,
     stationArea: val('station-area'),
     dutyOfficer: { name: val('do-name'), rank: val('do-rank'), phone: val('do-phone') },
@@ -2779,18 +2782,21 @@ function prefillEditForm(r) {
     if(document.getElementById('f-time')) document.getElementById('f-time').value = r.time||'';
     if(document.getElementById('f-location')) document.getElementById('f-location').value = r.location||'';
     if(document.getElementById('f-detail-select')) {
+      // โหลด crime (selectbox) และ detail (textbox) แยกกัน
+      const crimeVal = r.crime || '';
       const knownVals = Array.from(document.getElementById('f-detail-select').options).map(o=>o.value);
-      const detailMain = r.detail ? r.detail.split(' — ')[0] : '';
-      if (knownVals.includes(detailMain)) {
-        document.getElementById('f-detail-select').value = detailMain;
-        onDetailSelect(detailMain);
-        const extra = r.detail.includes(' — ') ? r.detail.split(' — ').slice(1).join(' — ') : '';
-        if(document.getElementById('f-detail')) document.getElementById('f-detail').value = extra;
-      } else {
-        document.getElementById('f-detail-select').value = 'อื่น';
-        onDetailSelect('อื่น');
-        if(document.getElementById('f-detail')) document.getElementById('f-detail').value = r.detail||'';
+      if (crimeVal && knownVals.includes(crimeVal)) {
+        document.getElementById('f-detail-select').value = crimeVal;
+        onDetailSelect(crimeVal);
+      } else if (!crimeVal && r.detail) {
+        // ข้อมูลเก่า (รูปแบบเดิม "ฆ่าผู้อื่น — พฤติการณ์")
+        const detailMain = r.detail.split(' — ')[0];
+        if (knownVals.includes(detailMain)) {
+          document.getElementById('f-detail-select').value = detailMain;
+          onDetailSelect(detailMain);
+        }
       }
+      if(document.getElementById('f-detail')) document.getElementById('f-detail').value = r.detail||'';
     }
     if (r.type) selectType(r.type);
     if (r.stationArea) { document.getElementById('station-area').value = r.stationArea; onStationInput(r.stationArea); }
