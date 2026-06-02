@@ -1031,6 +1031,25 @@
         </div>
 
         <hr class="divider">
+
+        <!-- LINE GROUP_ID -->
+        <div style="margin-bottom:16px;">
+          <div class="card-header" style="margin-bottom:12px;">
+            <div class="icon" style="background:#DCF8C6">💬</div>
+            <div class="card-title">ตั้งค่า LINE Group ID</div>
+          </div>
+          <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;">วาง Group ID ของกลุ่ม LINE ที่ต้องการให้ระบบส่งรายงานอัตโนมัติ</p>
+          <div style="display:flex;gap:10px;align-items:flex-end;">
+            <div class="field" style="flex:1;margin-bottom:0;">
+              <label>LINE Group ID</label>
+              <input type="text" id="line-group-id-input" placeholder="C xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" style="font-family:monospace;font-size:13px;">
+            </div>
+            <button class="btn btn-primary" style="white-space:nowrap;" onclick="saveLineGroupId()">💾 บันทึก</button>
+          </div>
+          <div id="line-group-result" style="font-size:13px;margin-top:8px;"></div>
+        </div>
+
+        <hr class="divider">
         <div class="field">
           <label>โค้ด Google Apps Script (คัดลอกไปวาง)</label>
           <textarea readonly rows="20" style="font-family:monospace;font-size:12px;background:var(--gray-light);" id="apps-script-code"></textarea>
@@ -2080,6 +2099,28 @@ async function uploadFileToDrive(file, ref) {
     // คืน {url, name} เพื่อเก็บชื่อไฟล์ลงใน Sheet ด้วย
     return { url: data.url, name: data.name || file.name };
   } catch(e) { console.warn('upload error:', e); return null; }
+}
+
+async function saveLineGroupId() {
+  const input = document.getElementById('line-group-id-input');
+  const res   = document.getElementById('line-group-result');
+  const groupId = input.value.trim();
+  if (!groupId) { res.style.color='var(--red)'; res.textContent='กรุณากรอก Group ID'; return; }
+  if (!groupId.startsWith('C')) { res.style.color='var(--red)'; res.textContent='Group ID ต้องขึ้นต้นด้วย C'; return; }
+  res.style.color='var(--text-muted)'; res.textContent='กำลังบันทึก...';
+  try {
+    const r = await fetch(GS_URL, { method:'POST', headers:{'Content-Type':'text/plain;charset=UTF-8'},
+      body: JSON.stringify({ action:'setLineGroupId', groupId }) });
+    const j = await r.json();
+    if (j.status === 'ok') {
+      res.style.color='var(--green)';
+      res.textContent='✅ บันทึก LINE Group ID เรียบร้อย';
+      input.value = '';
+    } else {
+      res.style.color='var(--red)';
+      res.textContent='❌ ' + (j.msg || 'เกิดข้อผิดพลาด');
+    }
+  } catch(e) { res.style.color='var(--red)'; res.textContent='❌ ไม่สามารถเชื่อมต่อได้'; }
 }
 
 async function saveStaff() {
