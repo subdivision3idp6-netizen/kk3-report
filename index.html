@@ -543,44 +543,50 @@
           <div class="card-num" id="ref-display">—</div>
         </div>
 
-        <div class="form-grid cols3">
-          <div class="field">
-            <label>วันที่เกิดเหตุ</label>
-            <input type="date" id="f-date">
-          </div>
-          <div class="field">
-            <label>เวลาเกิดเหตุ</label>
-            <input type="time" id="f-time">
-          </div>
-          <div class="field">
-            <label>เลขที่รายงาน</label>
-            <input type="text" id="f-ref" readonly>
-          </div>
-        </div>
-        <!-- พื้นที่เกิดเหตุ — 3 cascading selects + ถนน -->
-        <div class="form-grid cols3" style="margin-bottom:10px;" id="location-grid">
-          <div class="field">
-            <label>จังหวัด</label>
-            <input type="text" id="f-province" list="list-province" placeholder="จังหวัด" autocomplete="off"
-              oninput="onProvinceInput(this.value)">
-            <datalist id="list-province">
-              <option value="ตาก"><option value="นครสวรรค์"><option value="อุทัยธานี">
-            </datalist>
-          </div>
-          <div class="field">
-            <label>อำเภอ</label>
-            <input type="text" id="f-amphoe" list="list-amphoe" placeholder="อำเภอ" autocomplete="off"
-              oninput="onAmphoeInput(this.value)">
-            <datalist id="list-amphoe"></datalist>
-          </div>
-          <div class="field">
-            <label>ตำบล</label>
-            <input type="text" id="f-tambon" list="list-tambon" placeholder="ตำบล" autocomplete="off">
-            <datalist id="list-tambon"></datalist>
+        <!-- กลุ่ม 1: เวลาที่เกิดเหตุ -->
+        <div style="background:var(--blue-light);border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:14px;">
+          <div style="font-size:12px;font-weight:700;color:var(--blue-dark);margin-bottom:10px;letter-spacing:.4px;">⏱ เวลาที่เกิดเหตุ</div>
+          <div class="form-grid cols3">
+            <div class="field" style="margin-bottom:0;">
+              <label>วันที่เกิดเหตุ</label>
+              <input type="date" id="f-date">
+            </div>
+            <div class="field" style="margin-bottom:0;">
+              <label>เวลาเกิดเหตุ</label>
+              <input type="time" id="f-time">
+            </div>
+            <div class="field" style="margin-bottom:0;">
+              <label>เลขที่รายงาน</label>
+              <input type="text" id="f-ref" readonly>
+            </div>
           </div>
         </div>
-        <div class="form-grid col1" style="margin-bottom:4px;">
-          <div class="field">
+
+        <!-- กลุ่ม 2: ที่เกิดเหตุ -->
+        <div style="background:#F5F5F0;border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:14px;">
+          <div style="font-size:12px;font-weight:700;color:var(--text-muted);margin-bottom:10px;letter-spacing:.4px;">📍 ที่เกิดเหตุ</div>
+          <div class="form-grid cols3" style="margin-bottom:10px;" id="location-grid">
+            <div class="field" style="margin-bottom:0;">
+              <label>จังหวัด</label>
+              <input type="text" id="f-province" list="list-province" placeholder="จังหวัด" autocomplete="off"
+                oninput="onProvinceInput(this.value)">
+              <datalist id="list-province">
+                <option value="ตาก"><option value="นครสวรรค์"><option value="อุทัยธานี">
+              </datalist>
+            </div>
+            <div class="field" style="margin-bottom:0;">
+              <label>อำเภอ</label>
+              <input type="text" id="f-amphoe" list="list-amphoe" placeholder="อำเภอ" autocomplete="off"
+                oninput="onAmphoeInput(this.value)">
+              <datalist id="list-amphoe"></datalist>
+            </div>
+            <div class="field" style="margin-bottom:0;">
+              <label>ตำบล</label>
+              <input type="text" id="f-tambon" list="list-tambon" placeholder="ตำบล" autocomplete="off">
+              <datalist id="list-tambon"></datalist>
+            </div>
+          </div>
+          <div class="field" style="margin-bottom:0;">
             <label>ถนน / สถานที่ (ถ้ามี)</label>
             <input type="text" id="f-street" placeholder="เช่น ถนนพหลโยธิน, บริเวณหน้าวัด...">
           </div>
@@ -643,19 +649,8 @@
           <div class="radio-pill"><input type="radio" name="victim-known" id="vk-no" value="unknown" onchange="show('victim-sub',false)"><label for="vk-no">ไม่ทราบ</label></div>
         </div>
         <div id="victim-sub" style="display:none;">
-          <div class="sub-box">
-            <div class="form-grid">
-              <div class="field"><label>ชื่อ-นามสกุล</label><input type="text" id="v-name" placeholder="ชื่อ นามสกุล"></div>
-              <div class="field"><label>อายุ (ปี)</label><input type="number" id="v-age" placeholder="อายุ" min="0" max="120"></div>
-            </div>
-            <div class="form-grid">
-              <div class="field"><label>เบอร์โทรศัพท์</label><input type="tel" id="v-phone" placeholder="0XX-XXX-XXXX"></div>
-              <div class="field"><label>เลขบัตรประชาชน</label><input type="text" id="v-id" placeholder="X XXXX XXXXX XX X" maxlength="17"></div>
-            </div>
-            <div class="form-grid col1">
-              <div class="field"><label>ที่อยู่</label><textarea id="v-addr" rows="2" placeholder="บ้านเลขที่ ถนน ตำบล อำเภอ จังหวัด"></textarea></div>
-            </div>
-          </div>
+          <div id="victims-list"></div>
+          <button type="button" class="btn btn-outline" style="margin-top:4px;width:100%;" onclick="addVictim()">+ เพิ่มผู้เสียหาย</button>
         </div>
       </div>
 
@@ -674,19 +669,8 @@
 
         <!-- Arrested fields -->
         <div id="perp-arrested" style="display:none;">
-          <div class="sub-box">
-            <div style="font-size:12px;font-weight:700;color:var(--blue-dark);margin-bottom:10px;">ข้อมูลผู้ก่อเหตุที่จับกุมได้</div>
-            <div class="form-grid">
-              <div class="field"><label>ชื่อ-นามสกุล</label><input type="text" id="pa-name" placeholder="ชื่อ นามสกุล"></div>
-              <div class="field"><label>อายุ (ปี)</label><input type="number" id="pa-age" placeholder="อายุ" min="0" max="120"></div>
-            </div>
-            <div class="form-grid col1">
-              <div class="field"><label>เลขบัตรประชาชน</label><input type="text" id="pa-id" placeholder="X XXXX XXXXX XX X" maxlength="17"></div>
-            </div>
-            <div class="form-grid col1">
-              <div class="field"><label>ที่อยู่</label><textarea id="pa-addr" rows="2" placeholder="บ้านเลขที่ ถนน ตำบล อำเภอ จังหวัด"></textarea></div>
-            </div>
-          </div>
+          <div id="perps-arrested-list"></div>
+          <button type="button" class="btn btn-outline" style="margin-top:4px;width:100%;" onclick="addPerp('arrested')">+ เพิ่มผู้ก่อเหตุ (จับกุมได้)</button>
         </div>
 
         <!-- Not arrested -->
@@ -697,19 +681,8 @@
             <div class="radio-pill"><input type="radio" name="perp-known" id="pk-no"  value="unknown" onchange="show('perp-sub',false)"><label for="pk-no">ไม่ทราบ</label></div>
           </div>
           <div id="perp-sub" style="display:none;">
-            <div class="sub-box">
-              <div style="font-size:12px;font-weight:700;color:var(--red);margin-bottom:10px;">ข้อมูลผู้ก่อเหตุ</div>
-              <div class="form-grid">
-                <div class="field"><label>ชื่อ-นามสกุล</label><input type="text" id="p-name" placeholder="ชื่อ นามสกุล"></div>
-                <div class="field"><label>อายุ (ปี)</label><input type="number" id="p-age" placeholder="อายุ" min="0" max="120"></div>
-              </div>
-              <div class="form-grid col1">
-                <div class="field"><label>เลขบัตรประชาชน</label><input type="text" id="p-id" placeholder="X XXXX XXXXX XX X" maxlength="17"></div>
-              </div>
-              <div class="form-grid col1">
-                <div class="field"><label>ที่อยู่</label><textarea id="p-addr" rows="2" placeholder="บ้านเลขที่ ถนน ตำบล อำเภอ จังหวัด"></textarea></div>
-              </div>
-            </div>
+            <div id="perps-known-list"></div>
+            <button type="button" class="btn btn-outline" style="margin-top:4px;width:100%;" onclick="addPerp('known')">+ เพิ่มผู้ก่อเหตุ</button>
           </div>
         </div>
       </div>
@@ -911,9 +884,9 @@
       <div class="filter-bar">
         <select id="filter-type" onchange="renderTable()">
           <option value="">ทุกประเภท</option>
-          <option value="urgent">เหตุอุฉกรรณ์</option>
-          <option value="interesting">เหตุน่าสนใจ</option>
-          <option value="express">รายงานด่วน</option>
+          <option value="อุฉกรรณ์">เหตุอุฉกรรณ์</option>
+          <option value="น่าสนใจ">เหตุน่าสนใจ</option>
+          <option value="เร่งด่วน">รายงานด่วน</option>
         </select>
         <select id="filter-weapon" onchange="renderTable()">
           <option value="">ทุกสถานะอาวุธ</option>
@@ -1919,10 +1892,14 @@ function updateGsStatus() {
 
 function show(id, visible) { document.getElementById(id).style.display = visible ? 'block' : 'none'; }
 
+const typeValueMap = { urgent: 'อุฉกรรณ์', interesting: 'น่าสนใจ', express: 'เร่งด่วน' };
+const typeKeyMap   = { 'อุฉกรรณ์': 'urgent', 'น่าสนใจ': 'interesting', 'เร่งด่วน': 'express' };
+
 function selectType(t) {
-  selectedType = t;
+  const key = typeKeyMap[t] || t;           // รองรับทั้ง key เก่า และ Thai string
+  selectedType = typeValueMap[key] || key;  // เก็บเป็น Thai เสมอ
   ['urgent','interesting','express'].forEach(x => {
-    document.getElementById('tile-'+x).className = 'type-tile' + (x===t ? ' sel-'+t : '');
+    document.getElementById('tile-'+x).className = 'type-tile' + (x===key ? ' sel-'+key : '');
   });
 }
 
@@ -2050,10 +2027,12 @@ async function saveRecord() {
     dutyOfficer: { name: val('do-name'), rank: val('do-rank'), phone: val('do-phone') },
     stationChief: { name: val('chief-name'), rank: val('chief-rank'), phone: val('chief-phone') },
     victimKnown,
-    victim: victimKnown ? { name:val('v-name'), age:val('v-age'), phone:val('v-phone'), id:val('v-id'), addr:val('v-addr') } : null,
+    victims: victimKnown ? getVictims() : [],
+    victim: victimKnown ? (getVictims()[0]||null) : null,   // backward compat
     arrested, perpKnown,
-    perp: arrested === 'yes' ? { name:val('pa-name'), age:val('pa-age'), id:val('pa-id'), addr:val('pa-addr'), arrested:true }
-          : perpKnown ? { name:val('p-name'), age:val('p-age'), id:val('p-id'), addr:val('p-addr'), arrested:false } : null,
+    perps: arrested === 'yes' ? getPerpsArr().map(p=>({...p,arrested:true}))
+           : perpKnown ? getPerpsKnown().map(p=>({...p,arrested:false})) : [],
+    perp: (arrested==='yes' ? getPerpsArr()[0] : perpKnown ? getPerpsKnown()[0] : null) || null,
     weapon: weaponVal,
     weaponType: weaponVal === 'yes' ? val('w-type') : '',
     weaponDetail: weaponVal === 'yes' ? val('w-detail') : '',
@@ -2155,6 +2134,77 @@ async function sendToGoogleSheets(rec) {
   } catch(e) { console.warn('GSheets error:', e); return false; }
 }
 
+// ════════════════════════════════════════
+// Multi-victim / Multi-perp
+// ════════════════════════════════════════
+let victimsList        = [{}];   // เริ่มด้วย 1 ช่อง
+let perpsArrestedList  = [{}];
+let perpsKnownList     = [{}];
+
+function personCardHTML(prefix, idx, p={}, labelColor='var(--blue-dark)', labelText='') {
+  const isFirst = idx === 0;
+  return `<div class="sub-box" style="position:relative;margin-bottom:10px;">
+    <div style="font-size:12px;font-weight:700;color:${labelColor};margin-bottom:8px;">
+      ${labelText} คนที่ ${idx+1}
+      ${!isFirst ? `<button type="button" onclick="removePerson('${prefix}',${idx})"
+        style="float:right;background:none;border:none;color:var(--red);cursor:pointer;font-size:13px;line-height:1;">✕ ลบ</button>` : ''}
+    </div>
+    <div class="form-grid">
+      <div class="field"><label>ชื่อ-นามสกุล</label><input type="text" id="${prefix}-name-${idx}" value="${p.name||''}" placeholder="ชื่อ นามสกุล"></div>
+      <div class="field"><label>อายุ (ปี)</label><input type="number" id="${prefix}-age-${idx}" value="${p.age||''}" placeholder="อายุ" min="0" max="120"></div>
+    </div>
+    <div class="form-grid">
+      <div class="field"><label>เบอร์โทรศัพท์</label><input type="tel" id="${prefix}-phone-${idx}" value="${p.phone||''}" placeholder="0XX-XXX-XXXX"></div>
+      <div class="field"><label>เลขบัตรประชาชน</label><input type="text" id="${prefix}-id-${idx}" value="${p.id||''}" placeholder="X XXXX XXXXX XX X" maxlength="17"></div>
+    </div>
+    <div class="form-grid col1">
+      <div class="field"><label>ที่อยู่</label><textarea id="${prefix}-addr-${idx}" rows="2" placeholder="บ้านเลขที่ ถนน ตำบล อำเภอ จังหวัด">${p.addr||''}</textarea></div>
+    </div>
+  </div>`;
+}
+
+function renderList(listId, arr, prefix, labelColor, labelText) {
+  const el = document.getElementById(listId);
+  if (!el) return;
+  el.innerHTML = arr.map((p,i) => personCardHTML(prefix, i, p, labelColor, labelText)).join('');
+}
+
+function renderVictims()  { renderList('victims-list',       victimsList,       'v',  'var(--blue-dark)', 'ผู้เสียหาย'); }
+function renderPerpsArr() { renderList('perps-arrested-list', perpsArrestedList, 'pa', 'var(--blue-dark)', 'ผู้ก่อเหตุ (จับกุมได้)'); }
+function renderPerpsKnw() { renderList('perps-known-list',    perpsKnownList,    'pk', 'var(--red)',        'ผู้ก่อเหตุ'); }
+
+function addVictim(p={})      { victimsList.push(p);       renderVictims(); }
+function addPerp(mode, p={})  {
+  if (mode === 'arrested') { perpsArrestedList.push(p); renderPerpsArr(); }
+  else                     { perpsKnownList.push(p);    renderPerpsKnw(); }
+}
+
+function removePerson(prefix, idx) {
+  if (prefix === 'v')  { victimsList.splice(idx,1);       if(!victimsList.length) victimsList=[{}];       renderVictims(); }
+  if (prefix === 'pa') { perpsArrestedList.splice(idx,1); if(!perpsArrestedList.length) perpsArrestedList=[{}]; renderPerpsArr(); }
+  if (prefix === 'pk') { perpsKnownList.splice(idx,1);    if(!perpsKnownList.length) perpsKnownList=[{}];    renderPerpsKnw(); }
+}
+
+function collectPersons(prefix, arr) {
+  return arr.map((_,i) => ({
+    name:  document.getElementById(`${prefix}-name-${i}`)?.value?.trim()||'',
+    age:   document.getElementById(`${prefix}-age-${i}`)?.value||'',
+    phone: document.getElementById(`${prefix}-phone-${i}`)?.value?.trim()||'',
+    id:    document.getElementById(`${prefix}-id-${i}`)?.value?.trim()||'',
+    addr:  document.getElementById(`${prefix}-addr-${i}`)?.value?.trim()||''
+  })).filter(p => p.name);
+}
+
+function getVictims()     { return collectPersons('v', victimsList); }
+function getPerpsArr()    { return collectPersons('pa', perpsArrestedList); }
+function getPerpsKnown()  { return collectPersons('pk', perpsKnownList); }
+
+// init lists on first render
+function initPersonLists() {
+  victimsList=[{}]; perpsArrestedList=[{}]; perpsKnownList=[{}];
+  renderVictims(); renderPerpsArr(); renderPerpsKnw();
+}
+
 function clearForm() {
   selectedType = '';
   ['urgent','interesting','express'].forEach(x => document.getElementById('tile-'+x).className = 'type-tile');
@@ -2164,11 +2214,10 @@ function clearForm() {
   ['f-province','f-amphoe','f-tambon','f-street'].forEach(id => { if(document.getElementById(id)) document.getElementById(id).value = ''; });
   document.getElementById('list-amphoe').innerHTML = '';
   document.getElementById('list-tambon').innerHTML = '';
-  ['f-detail',
-   'v-name','v-age','v-phone','v-id','v-addr','pa-name','pa-age','pa-id','pa-addr',
-   'p-name','p-age','p-id','p-addr','w-type','w-detail',
+  ['f-detail','w-type','w-detail',
    'do-name','do-rank','do-phone',
    'station-area','chief-name','chief-rank','chief-phone'].forEach(id => { if(document.getElementById(id)) document.getElementById(id).value = ''; });
+  initPersonLists();
   document.getElementById('officer-block').style.display = 'none';
   // reset radios (no default — user must pick)
   document.querySelectorAll('input[name="victim-known"]').forEach(r => r.checked = false);
@@ -2180,9 +2229,12 @@ function clearForm() {
   init();
 }
 
-const typeLabel = { urgent:'เหตุอุฉกรรณ์', interesting:'เหตุน่าสนใจ', express:'รายงานด่วน' };
-const typeBadge = { urgent:'badge-urgent', interesting:'badge-interesting', express:'badge-express' };
-const typeColor = { urgent:'#E24B4A', interesting:'#EF9F27', express:'#639922' };
+const typeLabel = { urgent:'เหตุอุฉกรรณ์', interesting:'เหตุน่าสนใจ', express:'รายงานด่วน',
+                    'อุฉกรรณ์':'เหตุอุฉกรรณ์', 'น่าสนใจ':'เหตุน่าสนใจ', 'เร่งด่วน':'รายงานด่วน' };
+const typeBadge = { urgent:'badge-urgent', interesting:'badge-interesting', express:'badge-express',
+                    'อุฉกรรณ์':'badge-urgent', 'น่าสนใจ':'badge-interesting', 'เร่งด่วน':'badge-express' };
+const typeColor = { urgent:'#E24B4A', interesting:'#EF9F27', express:'#639922',
+                    'อุฉกรรณ์':'#E24B4A', 'น่าสนใจ':'#EF9F27', 'เร่งด่วน':'#639922' };
 const wpLabel = { yes:'มีอาวุธ', no:'ไม่มี', unknown:'ไม่ทราบ' };
 const wpBadge = { yes:'badge-weapon', no:'badge-no-weapon', unknown:'badge-unk' };
 
@@ -2193,9 +2245,9 @@ function bar(lbl, count, max, color) {
 
 function renderDashboard() {
   const total = records.length;
-  const urgent = records.filter(r=>r.type==='urgent').length;
-  const interesting = records.filter(r=>r.type==='interesting').length;
-  const express = records.filter(r=>r.type==='express').length;
+  const urgent = records.filter(r=>r.type==='urgent'||r.type==='อุฉกรรณ์').length;
+  const interesting = records.filter(r=>r.type==='interesting'||r.type==='น่าสนใจ').length;
+  const express = records.filter(r=>r.type==='express'||r.type==='เร่งด่วน').length;
   const arrested = records.filter(r=>r.arrested==='yes').length;
   const wYes = records.filter(r=>r.weapon==='yes').length;
   const wNo  = records.filter(r=>r.weapon==='no').length;
@@ -2744,6 +2796,23 @@ function prefillEditForm(r) {
     if (r.stationArea) { document.getElementById('station-area').value = r.stationArea; onStationInput(r.stationArea); }
     if (r.dutyOfficer) { document.getElementById('do-name').value=r.dutyOfficer.name||''; document.getElementById('do-rank').value=r.dutyOfficer.rank||''; document.getElementById('do-phone').value=r.dutyOfficer.phone||''; }
     if (r.stationChief) { document.getElementById('chief-name').value=r.stationChief.name||''; document.getElementById('chief-rank').value=r.stationChief.rank||''; document.getElementById('chief-phone').value=r.stationChief.phone||''; }
+    // โหลดผู้เสียหาย
+    if (r.victimKnown) {
+      document.getElementById('vk-yes').checked = true; show('victim-sub', true);
+      const vArr = r.victims && r.victims.length ? r.victims : (r.victim ? [r.victim] : [{}]);
+      victimsList = vArr.length ? vArr : [{}]; renderVictims();
+    }
+    // โหลดผู้ก่อเหตุ
+    if (r.arrested === 'yes') {
+      document.getElementById('arr-yes').checked = true; onArrested('yes');
+      const pArr = r.perps && r.perps.length ? r.perps : (r.perp ? [r.perp] : [{}]);
+      perpsArrestedList = pArr.length ? pArr : [{}]; renderPerpsArr();
+    } else if (r.perpKnown) {
+      document.getElementById('arr-no').checked = true; onArrested('no');
+      document.getElementById('pk-yes').checked = true; show('perp-sub', true);
+      const pArr = r.perps && r.perps.length ? r.perps : (r.perp ? [r.perp] : [{}]);
+      perpsKnownList = pArr.length ? pArr : [{}]; renderPerpsKnw();
+    }
     toast('โหลดข้อมูลสำหรับแก้ไข: ' + r.ref, 'success');
     // เลื่อนขึ้นบน
     window.scrollTo(0,0);
@@ -2751,6 +2820,7 @@ function prefillEditForm(r) {
 }
 
 init();
+initPersonLists();
 
 /* ── File Upload Logic ── */
 const fileStore = { img: [], ppt: [], doc: [] };
