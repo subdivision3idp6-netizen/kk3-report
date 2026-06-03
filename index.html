@@ -360,7 +360,7 @@
 <div class="entry-overlay" id="entry-overlay">
   <div class="entry-card">
     <div class="entry-logo">
-      <div class="badge-unit">กองบังคับการสืบสวน</div>
+      <div class="badge-unit">กก.สืบสวน 3 บก.สส.ภ.6</div>
       <h1>ระบบบันทึกเหตุการณ์</h1>
       <p>กรุณาเลือกหน่วยงานและผู้บันทึกก่อนเข้าใช้งาน</p>
     </div>
@@ -396,9 +396,9 @@
       <div class="entry-field" style="margin-bottom:4px;">
         <label>เบอร์โทรศัพท์</label>
         <div style="display:flex;gap:8px;align-items:flex-start;">
-          <input type="tel" id="op-phone-input" placeholder="0XX-XXX-XXXX" maxlength="13"
-            autocomplete="off" style="flex:1;"
-            oninput="onPhoneInput()"
+          <input type="tel" id="op-phone-input" placeholder="0XX-XXX-XXXX" maxlength="10"
+            autocomplete="off" style="flex:1;" inputmode="numeric" pattern="[0-9]*"
+            oninput="this.value=this.value.replace(/\D/g,'').slice(0,10);onPhoneInput()"
             onkeydown="if(event.key==='Enter'&&!document.getElementById('btn-check-phone').disabled)checkPhone()">
           <button class="btn-check" id="btn-check-phone" onclick="checkPhone()" disabled>ตรวจสอบ →</button>
         </div>
@@ -2176,16 +2176,56 @@ function renderVictims()  { renderList('victims-list',       victimsList,       
 function renderPerpsArr() { renderList('perps-arrested-list', perpsArrestedList, 'pa', 'var(--blue-dark)', 'ผู้ก่อเหตุ (จับกุมได้)'); }
 function renderPerpsKnw() { renderList('perps-known-list',    perpsKnownList,    'pk', 'var(--red)',        'ผู้ก่อเหตุ'); }
 
-function addVictim(p={})      { victimsList.push(p);       renderVictims(); }
-function addPerp(mode, p={})  {
-  if (mode === 'arrested') { perpsArrestedList.push(p); renderPerpsArr(); }
-  else                     { perpsKnownList.push(p);    renderPerpsKnw(); }
+// บันทึกค่าจาก DOM กลับเข้า array ก่อน re-render
+function saveCurrentToArray(prefix, arr) {
+  arr.forEach((_, i) => {
+    arr[i] = {
+      name:  document.getElementById(`${prefix}-name-${i}`)?.value?.trim()||'',
+      age:   document.getElementById(`${prefix}-age-${i}`)?.value||'',
+      phone: document.getElementById(`${prefix}-phone-${i}`)?.value?.trim()||'',
+      id:    document.getElementById(`${prefix}-id-${i}`)?.value?.trim()||'',
+      addr:  document.getElementById(`${prefix}-addr-${i}`)?.value?.trim()||''
+    };
+  });
+}
+
+function addVictim(p={}) {
+  saveCurrentToArray('v', victimsList);
+  victimsList.push(p);
+  renderVictims();
+}
+
+function addPerp(mode, p={}) {
+  if (mode === 'arrested') {
+    saveCurrentToArray('pa', perpsArrestedList);
+    perpsArrestedList.push(p);
+    renderPerpsArr();
+  } else {
+    saveCurrentToArray('pk', perpsKnownList);
+    perpsKnownList.push(p);
+    renderPerpsKnw();
+  }
 }
 
 function removePerson(prefix, idx) {
-  if (prefix === 'v')  { victimsList.splice(idx,1);       if(!victimsList.length) victimsList=[{}];       renderVictims(); }
-  if (prefix === 'pa') { perpsArrestedList.splice(idx,1); if(!perpsArrestedList.length) perpsArrestedList=[{}]; renderPerpsArr(); }
-  if (prefix === 'pk') { perpsKnownList.splice(idx,1);    if(!perpsKnownList.length) perpsKnownList=[{}];    renderPerpsKnw(); }
+  if (prefix === 'v')  {
+    saveCurrentToArray('v', victimsList);
+    victimsList.splice(idx,1);
+    if (!victimsList.length) victimsList=[{}];
+    renderVictims();
+  }
+  if (prefix === 'pa') {
+    saveCurrentToArray('pa', perpsArrestedList);
+    perpsArrestedList.splice(idx,1);
+    if (!perpsArrestedList.length) perpsArrestedList=[{}];
+    renderPerpsArr();
+  }
+  if (prefix === 'pk') {
+    saveCurrentToArray('pk', perpsKnownList);
+    perpsKnownList.splice(idx,1);
+    if (!perpsKnownList.length) perpsKnownList=[{}];
+    renderPerpsKnw();
+  }
 }
 
 function collectPersons(prefix, arr) {
@@ -2198,9 +2238,9 @@ function collectPersons(prefix, arr) {
   })).filter(p => p.name);
 }
 
-function getVictims()     { return collectPersons('v', victimsList); }
-function getPerpsArr()    { return collectPersons('pa', perpsArrestedList); }
-function getPerpsKnown()  { return collectPersons('pk', perpsKnownList); }
+function getVictims()    { saveCurrentToArray('v',  victimsList);       return collectPersons('v',  victimsList); }
+function getPerpsArr()   { saveCurrentToArray('pa', perpsArrestedList); return collectPersons('pa', perpsArrestedList); }
+function getPerpsKnown() { saveCurrentToArray('pk', perpsKnownList);    return collectPersons('pk', perpsKnownList); }
 
 // init lists on first render
 function initPersonLists() {
@@ -2363,7 +2403,7 @@ function generateInfographic() {
   <div class="ig" id="ig">
     <div class="ig-header">
       <div>
-        <div class="ig-badge">กองบังคับการสืบสวน</div>
+        <div class="ig-badge">กก.สืบสวน 3 บก.สส.ภ.6</div>
         <div class="ig-title">รายงานสถิติเหตุการณ์</div>
         <div class="ig-sub">${unit}</div>
       </div>
