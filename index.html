@@ -2189,21 +2189,29 @@ function saveCurrentToArray(prefix, arr) {
   });
 }
 
-function addVictim(p={}) {
-  saveCurrentToArray('v', victimsList);
-  victimsList.push(p);
-  renderVictims();
+function appendCard(containerId, prefix, idx, labelColor, labelText) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  const tmp = document.createElement('div');
+  tmp.innerHTML = personCardHTML(prefix, idx, {}, labelColor, labelText);
+  container.appendChild(tmp.firstElementChild);
 }
 
-function addPerp(mode, p={}) {
+function addVictim() {
+  const idx = victimsList.length;
+  victimsList.push({});
+  appendCard('victims-list', 'v', idx, 'var(--blue-dark)', 'ผู้เสียหาย');
+}
+
+function addPerp(mode) {
   if (mode === 'arrested') {
-    saveCurrentToArray('pa', perpsArrestedList);
-    perpsArrestedList.push(p);
-    renderPerpsArr();
+    const idx = perpsArrestedList.length;
+    perpsArrestedList.push({});
+    appendCard('perps-arrested-list', 'pa', idx, 'var(--blue-dark)', 'ผู้ก่อเหตุ (จับกุมได้)');
   } else {
-    saveCurrentToArray('pk', perpsKnownList);
-    perpsKnownList.push(p);
-    renderPerpsKnw();
+    const idx = perpsKnownList.length;
+    perpsKnownList.push({});
+    appendCard('perps-known-list', 'pk', idx, 'var(--red)', 'ผู้ก่อเหตุ');
   }
 }
 
@@ -2238,9 +2246,22 @@ function collectPersons(prefix, arr) {
   })).filter(p => p.name);
 }
 
-function getVictims()    { saveCurrentToArray('v',  victimsList);       return collectPersons('v',  victimsList); }
-function getPerpsArr()   { saveCurrentToArray('pa', perpsArrestedList); return collectPersons('pa', perpsArrestedList); }
-function getPerpsKnown() { saveCurrentToArray('pk', perpsKnownList);    return collectPersons('pk', perpsKnownList); }
+function collectFromDOM(prefix, count) {
+  const result = [];
+  for (let i = 0; i < count; i++) {
+    const name = document.getElementById(`${prefix}-name-${i}`)?.value?.trim()||'';
+    const age  = document.getElementById(`${prefix}-age-${i}`)?.value||'';
+    const phone= document.getElementById(`${prefix}-phone-${i}`)?.value?.trim()||'';
+    const id   = document.getElementById(`${prefix}-id-${i}`)?.value?.trim()||'';
+    const addr = document.getElementById(`${prefix}-addr-${i}`)?.value?.trim()||'';
+    if (name) result.push({ name, age, phone, id, addr });
+  }
+  return result;
+}
+
+function getVictims()    { return collectFromDOM('v',  victimsList.length); }
+function getPerpsArr()   { return collectFromDOM('pa', perpsArrestedList.length); }
+function getPerpsKnown() { return collectFromDOM('pk', perpsKnownList.length); }
 
 // init lists on first render
 function initPersonLists() {
