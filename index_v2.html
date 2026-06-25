@@ -738,12 +738,8 @@
           <div class="radio-pill"><input type="radio" name="weapon" id="w-unk" value="unknown" onchange="showWeapon('unknown')"><label for="w-unk">ไม่ทราบ</label></div>
         </div>
         <div id="weapon-sub" style="display:none;">
-          <div class="sub-box">
-            <div class="form-grid">
-              <div class="field"><label>ชนิดอาวุธ</label><input type="text" id="w-type" placeholder="เช่น มีด ปืน ของแข็ง"></div>
-              <div class="field"><label>รายละเอียดเพิ่มเติม</label><input type="text" id="w-detail" placeholder="ลักษณะ สี ขนาด ฯลฯ"></div>
-            </div>
-          </div>
+          <div id="weapons-list"></div>
+          <button type="button" class="btn btn-outline" style="margin-top:4px;width:100%;" onclick="addWeapon()">+ เพิ่มรายการอาวุธ</button>
         </div>
       </div>
 
@@ -1140,6 +1136,8 @@ async function loadProvinces() {
     if (sel) sel.innerHTML = '<option value="">— เลือกจังหวัด —</option>' + provinceList.map(p => `<option value="${p}">${p}</option>`).join('');
   } catch (e) { console.warn('โหลด provinces.json ไม่ได้', e); }
   setProvinceDefault();
+  // person cards ถูก render ก่อน provinceList โหลด → re-render ให้ dropdown ที่อยู่มีจังหวัด
+  if (typeof renderVictims === 'function') { renderVictims(); renderPerpsArr(); renderPerpsKnw(); }
 }
 
 // ตั้งจังหวัด default ตามหน่วย (เรียกได้หลัง options พร้อม)
@@ -1200,6 +1198,41 @@ function getLocationValue() {
   if (amphoe)  parts.push('อ.' + amphoe);
   if (province)parts.push('จ.' + province);
   return parts.join(' ');
+}
+
+// ── geo dropdown สำหรับ "ที่อยู่บุคคล" (จังหวัด/อำเภอ/ตำบล จาก geo เหมือนที่เกิดเหตุ) ──
+function provinceOptions(selected) {
+  return provinceList.map(p => `<option value="${p}"${p===selected?' selected':''}>${p}</option>`).join('');
+}
+async function personGeoProv(prefix, idx, presetAmphoe, presetTambon) {
+  const amSel = document.getElementById(`${prefix}-amp-${idx}`);
+  const tmSel = document.getElementById(`${prefix}-tam-${idx}`);
+  if (!amSel || !tmSel) return;
+  const prov = document.getElementById(`${prefix}-prov-${idx}`).value;
+  amSel.innerHTML = '<option value="">— อำเภอ —</option>';
+  tmSel.innerHTML = '<option value="">— ตำบล —</option>';
+  const d = await loadGeo(prov);
+  if (d) amSel.innerHTML += Object.keys(d).map(a => `<option value="${a}">${a}</option>`).join('');
+  if (presetAmphoe) { amSel.value = presetAmphoe; await personGeoAmp(prefix, idx, presetTambon); }
+}
+async function personGeoAmp(prefix, idx, presetTambon) {
+  const tmSel = document.getElementById(`${prefix}-tam-${idx}`);
+  if (!tmSel) return;
+  const prov = document.getElementById(`${prefix}-prov-${idx}`).value;
+  const amp  = document.getElementById(`${prefix}-amp-${idx}`).value;
+  tmSel.innerHTML = '<option value="">— ตำบล —</option>';
+  const d = await loadGeo(prov);
+  if (d && d[amp]) tmSel.innerHTML += d[amp].map(t => `<option value="${t}">${t}</option>`).join('');
+  if (presetTambon) tmSel.value = presetTambon;
+}
+// เติม dropdown ที่อยู่ของแต่ละคนหลัง render (กรณีมีค่าเดิม)
+function hydratePersonGeo(prefix, arr) {
+  arr.forEach((p, i) => {
+    if (p && p.addrProvince) {
+      const sel = document.getElementById(`${prefix}-prov-${i}`);
+      if (sel) { sel.value = p.addrProvince; personGeoProv(prefix, i, p.addrAmphoe, p.addrTambon); }
+    }
+  });
 }
 
 // ── Validation ──
@@ -1653,7 +1686,9 @@ function onArrested(val) {
 }
 
 function showWeapon(val) {
-  document.getElementById('weapon-sub').style.display = val === 'yes' ? 'block' : 'none';
+  const show = val === 'yes';
+  document.getElementById('weapon-sub').style.display = show ? 'block' : 'none';
+  if (show && document.getElementById('weapons-list') && !document.getElementById('weapons-list').children.length) renderWeapons();
 }
 
 function onStationInput(v) {
@@ -1837,8 +1872,9 @@ async function saveRecord() {
            : perpKnown ? getPerpsKnown().map(p=>({...p,arrested:false})) : [],
     perp: (arrested==='yes' ? getPerpsArr()[0] : perpKnown ? getPerpsKnown()[0] : null) || null,
     weapon: weaponVal,
-    weaponType: weaponVal === 'yes' ? val('w-type') : '',
-    weaponDetail: weaponVal === 'yes' ? val('w-detail') : '',
+    weapons: weaponVal === 'yes' ? getWeapons() : [],
+    weaponType: weaponVal === 'yes' ? (getWeapons()[0]?.type || '') : '',   // backward compat
+    weaponDetail: weaponVal === 'yes' ? (getWeapons()[0]?.detail || '') : '',
     damages: damageVal === 'yes' ? getDamages() : [],
     evidence: evidenceVal === 'yes' ? getEvidence() : [],
     status: caseStatus,
@@ -1982,8 +2018,14 @@ function personCardHTML(prefix, idx, p={}, labelColor='var(--blue-dark)', labelT
       <div class="field"><label>เบอร์โทรศัพท์</label><input type="tel" id="${prefix}-phone-${idx}" value="${p.phone||''}" placeholder="0XX-XXX-XXXX"></div>
       <div class="field"><label>เลขบัตรประชาชน</label><input type="text" id="${prefix}-id-${idx}" value="${p.id||''}" placeholder="X XXXX XXXXX XX X" maxlength="17"></div>
     </div>
+    <div style="font-size:11px;color:var(--text-hint);margin:2px 0 4px;">ที่อยู่</div>
+    <div class="form-grid cols3">
+      <div class="field"><label>จังหวัด</label><select id="${prefix}-prov-${idx}" onchange="personGeoProv('${prefix}',${idx})"><option value="">— จังหวัด —</option>${provinceOptions(p.addrProvince)}</select></div>
+      <div class="field"><label>อำเภอ</label><select id="${prefix}-amp-${idx}" onchange="personGeoAmp('${prefix}',${idx})"><option value="">— อำเภอ —</option></select></div>
+      <div class="field"><label>ตำบล</label><select id="${prefix}-tam-${idx}"><option value="">— ตำบล —</option></select></div>
+    </div>
     <div class="form-grid col1">
-      <div class="field"><label>ที่อยู่</label><textarea id="${prefix}-addr-${idx}" rows="2" placeholder="บ้านเลขที่ ถนน ตำบล อำเภอ จังหวัด">${p.addr||''}</textarea></div>
+      <div class="field"><label>บ้านเลขที่ / ถนน / หมู่</label><input type="text" id="${prefix}-addr-${idx}" value="${p.addr||''}" placeholder="เช่น 12 ม.3 ถนน..."></div>
     </div>
     ${isVictim ? `<label style="display:inline-flex;align-items:center;gap:8px;font-size:13px;color:var(--red);font-weight:600;margin-top:4px;cursor:pointer;">
       <input type="checkbox" id="v-dead-${idx}" ${p.dead?'checked':''} style="width:16px;height:16px;"> เสียชีวิต</label>` : ''}
@@ -1994,6 +2036,7 @@ function renderList(listId, arr, prefix, labelColor, labelText) {
   const el = document.getElementById(listId);
   if (!el) return;
   el.innerHTML = arr.map((p,i) => personCardHTML(prefix, i, p, labelColor, labelText)).join('');
+  hydratePersonGeo(prefix, arr);
 }
 
 function renderVictims()  { renderList('victims-list',       victimsList,       'v',  'var(--blue-dark)', 'ผู้เสียหาย'); }
@@ -2009,7 +2052,10 @@ function readPerson(prefix, i) {
     age:    document.getElementById(`${prefix}-age-${i}`)?.value||'',
     phone:  document.getElementById(`${prefix}-phone-${i}`)?.value?.trim()||'',
     id:     document.getElementById(`${prefix}-id-${i}`)?.value?.trim()||'',
-    addr:   document.getElementById(`${prefix}-addr-${i}`)?.value?.trim()||''
+    addr:        document.getElementById(`${prefix}-addr-${i}`)?.value?.trim()||'',
+    addrProvince:document.getElementById(`${prefix}-prov-${i}`)?.value||'',
+    addrAmphoe:  document.getElementById(`${prefix}-amp-${i}`)?.value||'',
+    addrTambon:  document.getElementById(`${prefix}-tam-${i}`)?.value||''
   };
   const deadEl = document.getElementById(`${prefix}-dead-${i}`);
   if (deadEl) obj.dead = deadEl.checked;
@@ -2199,10 +2245,67 @@ function getEvidence() {
   return out;
 }
 
+// ── อาวุธ (หลายรายการ + จำนวน/หน่วย) ──
+let weaponsList = [{}];
+
+function weaponCardHTML(idx, w={}) {
+  const isFirst = idx === 0;
+  return `<div class="sub-box" style="position:relative;margin-bottom:10px;">
+    <div style="font-size:12px;font-weight:700;color:var(--red);margin-bottom:8px;">
+      อาวุธชิ้นที่ ${idx+1}
+      ${!isFirst ? `<button type="button" onclick="removeWeapon(${idx})" style="float:right;background:none;border:none;color:var(--red);cursor:pointer;font-size:13px;line-height:1;">✕ ลบ</button>` : ''}
+    </div>
+    <div class="form-grid">
+      <div class="field"><label>ชนิดอาวุธ</label><input type="text" id="w-type-${idx}" value="${w.type||''}" placeholder="เช่น มีด ปืน ของแข็ง"></div>
+      <div class="field"><label>รายละเอียดเพิ่มเติม</label><input type="text" id="w-detail-${idx}" value="${w.detail||''}" placeholder="ลักษณะ สี ขนาด ฯลฯ"></div>
+    </div>
+    <div class="form-grid">
+      <div class="field"><label>จำนวน</label><input type="text" id="w-qty-${idx}" value="${w.qty||''}" placeholder="จำนวน"></div>
+      <div class="field"><label>หน่วย</label><input type="text" id="w-unit-${idx}" data-combo="list-unit" autocomplete="off" value="${w.unit||''}" placeholder="กระบอก/เล่ม/อัน"></div>
+    </div>
+  </div>`;
+}
+
+function renderWeapons() {
+  const el = document.getElementById('weapons-list');
+  if (el) el.innerHTML = weaponsList.map((w,i)=>weaponCardHTML(i,w)).join('');
+}
+
+function readWeapon(i) {
+  return {
+    type:   document.getElementById(`w-type-${i}`)?.value?.trim()||'',
+    detail: document.getElementById(`w-detail-${i}`)?.value?.trim()||'',
+    qty:    document.getElementById(`w-qty-${i}`)?.value?.trim()||'',
+    unit:   document.getElementById(`w-unit-${i}`)?.value?.trim()||''
+  };
+}
+
+function addWeapon() {
+  weaponsList = weaponsList.map((_,i)=>readWeapon(i));
+  weaponsList.push({});
+  renderWeapons();
+}
+
+function removeWeapon(idx) {
+  weaponsList = weaponsList.map((_,i)=>readWeapon(i));
+  weaponsList.splice(idx,1);
+  if (!weaponsList.length) weaponsList=[{}];
+  renderWeapons();
+}
+
+function getWeapons() {
+  const out = [];
+  for (let i=0;i<weaponsList.length;i++) {
+    const w = readWeapon(i);
+    if (w.type || w.detail || w.qty) out.push(w);
+  }
+  return out;
+}
+
 // init lists on first render
 function initPersonLists() {
-  victimsList=[{}]; perpsArrestedList=[{}]; perpsKnownList=[{}]; damagesList=[{}]; evidenceList=[{}];
-  renderVictims(); renderPerpsArr(); renderPerpsKnw(); renderDamages(); renderEvidence();
+  victimsList=[{}]; perpsArrestedList=[{}]; perpsKnownList=[{}]; damagesList=[{}]; evidenceList=[{}]; weaponsList=[{}];
+  renderVictims(); renderPerpsArr(); renderPerpsKnw(); renderDamages(); renderEvidence(); renderWeapons();
 }
 
 function clearForm() {
@@ -2215,7 +2318,7 @@ function clearForm() {
   document.getElementById('f-province').value = '';
   document.getElementById('f-amphoe').innerHTML = '<option value="">— เลือกอำเภอ —</option>';
   document.getElementById('f-tambon').innerHTML = '<option value="">— เลือกตำบล —</option>';
-  ['f-detail','w-type','w-detail',
+  ['f-detail',
    'do-name','do-rank','do-phone',
    'station-area','chief-name','chief-rank','chief-phone'].forEach(id => { if(document.getElementById(id)) document.getElementById(id).value = ''; });
   initPersonLists();
@@ -2479,6 +2582,15 @@ function fullPersonName(p) {
   const n = [p.prefix, p.fname, p.lname].filter(Boolean).join(' ');
   return n || p.name || '';
 }
+function fullPersonAddr(p) {
+  if (!p) return '';
+  const parts = [];
+  if (p.addr)         parts.push(p.addr);
+  if (p.addrTambon)   parts.push('ต.' + p.addrTambon);
+  if (p.addrAmphoe)   parts.push('อ.' + p.addrAmphoe);
+  if (p.addrProvince) parts.push('จ.' + p.addrProvince);
+  return parts.length ? parts.join(' ') : (p.addr || '');
+}
 
 // แปลงวันที่จาก Google Sheets (อาจเป็น "2026-05-21T17:00:00.000Z" หรือ "2026-05-21") → "21/05/2026"
 function fmtDate(v) {
@@ -2672,7 +2784,7 @@ function showDetail(idxOrRef) {
             <div class="detail-field"><label>อายุ</label><span>${df(v.age)}</span></div>
             <div class="detail-field"><label>โทร</label><span>${df(v.phone)}</span></div>
             <div class="detail-field"><label>บัตรประชาชน</label><span>${df(v.id)}</span></div>
-            <div class="detail-field full"><label>ที่อยู่</label><span>${df(v.addr)}</span></div>
+            <div class="detail-field full"><label>ที่อยู่</label><span>${df(fullPersonAddr(v))}</span></div>
           </div>`).join('') + `</div>`;
       })()}
       ${(() => {
@@ -2691,8 +2803,14 @@ function showDetail(idxOrRef) {
         <div class="detail-section-title">การจับกุม & ผู้ก่อเหตุ</div>
         <div class="detail-grid">
           <div class="detail-field"><label>สถานะการจับกุม</label><span>${arrested}</span></div>
-          <div class="detail-field"><label>อาวุธ</label><span>${wpLabel[r.weapon]||'—'} ${r.weaponType ? '('+r.weaponType+')' : ''}</span></div>
+          <div class="detail-field"><label>อาวุธ</label><span>${wpLabel[r.weapon]||'—'}</span></div>
         </div>
+        ${(() => {
+          const ws = (r.weapons && r.weapons.length) ? r.weapons
+                   : ((r.weaponType || r.weaponDetail) ? [{type:r.weaponType, detail:r.weaponDetail}] : []);
+          if (!ws.length) return '';
+          return `<div style="margin-top:8px;">` + ws.map((w,i)=>`<div style="font-size:14px;padding:2px 0;">${i+1}. ${[w.type,w.detail].filter(Boolean).join(' — ')}${w.qty?' จำนวน '+w.qty:''}${w.unit?' '+w.unit:''}</div>`).join('') + `</div>`;
+        })()}
         ${(() => {
           const ps = (r.perps && r.perps.length) ? r.perps : (r.perp ? [r.perp] : []);
           if (!ps.length) return '';
@@ -2701,7 +2819,7 @@ function showDetail(idxOrRef) {
             <div class="detail-field full"><label>ผู้ก่อเหตุ คนที่ ${i+1}</label><span>${df(fullPersonName(p))}</span></div>
             <div class="detail-field"><label>อายุ</label><span>${df(p.age)}</span></div>
             <div class="detail-field"><label>บัตรประชาชน</label><span>${df(p.id)}</span></div>
-            <div class="detail-field full"><label>ที่อยู่</label><span>${df(p.addr)}</span></div>
+            <div class="detail-field full"><label>ที่อยู่</label><span>${df(fullPersonAddr(p))}</span></div>
           </div>`).join('');
         })()}
       </div>
@@ -2881,6 +2999,17 @@ function prefillEditForm(r) {
       evidenceList = r.evidence.slice(); renderEvidence();
     } else {
       document.getElementById('ev-no').checked = true; show('evidence-sub', false);
+    }
+    // โหลดอาวุธ
+    if (r.weapon === 'yes') {
+      document.getElementById('w-yes').checked = true; showWeapon('yes');
+      const wArr = (r.weapons && r.weapons.length) ? r.weapons
+                 : ((r.weaponType || r.weaponDetail) ? [{type:r.weaponType||'', detail:r.weaponDetail||''}] : [{}]);
+      weaponsList = wArr.length ? wArr : [{}]; renderWeapons();
+    } else if (r.weapon === 'unknown') {
+      document.getElementById('w-unk').checked = true; showWeapon('unknown');
+    } else {
+      document.getElementById('w-no').checked = true; showWeapon('no');
     }
     // โหลดสถานะคดี
     const stId = r.status === 'done' ? 'cs-done' : 'cs-inprogress';
