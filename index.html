@@ -352,6 +352,10 @@
     .metric-row { display: grid !important; grid-template-columns: repeat(4,1fr); gap: 12px; }
     .metric-card { border: 1px solid #ccc !important; }
   }
+  /* Custom combobox dropdown (โชว์ตัวเลือกครบทุกครั้ง + พิมพ์กรองได้) */
+  .combo-pop { position: fixed; z-index: 250; background: var(--surface); border: 1px solid var(--gray-border); border-radius: var(--radius-sm); box-shadow: 0 4px 16px rgba(0,0,0,0.14); max-height: 240px; overflow-y: auto; }
+  .combo-pop .ci { padding: 9px 12px; font-size: 14px; cursor: pointer; white-space: nowrap; }
+  .combo-pop .ci:hover { background: var(--blue-light); color: var(--blue-dark); }
 </style>
 </head>
 <body>
@@ -484,6 +488,7 @@
       <button class="nav-item" onclick="gotoPage('records', this)">
         <svg class="nav-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 5h12M4 10h12M4 15h7"/></svg>
         รายการทั้งหมด
+        <span id="noti-badge" style="display:none;margin-left:auto;background:var(--red-mid);color:#fff;font-size:11px;font-weight:700;min-width:18px;height:18px;border-radius:9px;padding:0 5px;line-height:18px;text-align:center;">0</span>
       </button>
       <button class="nav-item" id="nav-setup-btn" onclick="gotoPage('setup', this)" style="display:none;">
         <svg class="nav-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="10" cy="10" r="3"/><path d="M10 2v2M10 16v2M2 10h2M16 10h2M4.2 4.2l1.4 1.4M14.4 14.4l1.4 1.4M4.2 15.8l1.4-1.4M14.4 5.6l1.4-1.4"/></svg>
@@ -568,27 +573,20 @@
           <div class="form-grid cols3" style="margin-bottom:10px;" id="location-grid">
             <div class="field" style="margin-bottom:0;">
               <label>จังหวัด</label>
-              <input type="text" id="f-province" list="list-province" placeholder="จังหวัด" autocomplete="off"
-                oninput="onProvinceInput(this.value)">
-              <datalist id="list-province">
-                <option value="ตาก"><option value="นครสวรรค์"><option value="อุทัยธานี">
-              </datalist>
+              <select id="f-province" onchange="onProvinceInput(this.value)"><option value="">— เลือกจังหวัด —</option></select>
             </div>
             <div class="field" style="margin-bottom:0;">
               <label>อำเภอ</label>
-              <input type="text" id="f-amphoe" list="list-amphoe" placeholder="อำเภอ" autocomplete="off"
-                oninput="onAmphoeInput(this.value)">
-              <datalist id="list-amphoe"></datalist>
+              <select id="f-amphoe" onchange="onAmphoeInput(this.value)"><option value="">— เลือกอำเภอ —</option></select>
             </div>
             <div class="field" style="margin-bottom:0;">
               <label>ตำบล</label>
-              <input type="text" id="f-tambon" list="list-tambon" placeholder="ตำบล" autocomplete="off">
-              <datalist id="list-tambon"></datalist>
+              <select id="f-tambon"><option value="">— เลือกตำบล —</option></select>
             </div>
           </div>
           <div class="field" style="margin-bottom:0;">
-            <label>ถนน / สถานที่ (ถ้ามี)</label>
-            <input type="text" id="f-street" placeholder="เช่น ถนนพหลโยธิน, บริเวณหน้าวัด...">
+            <label>สถานที่เกิดเหตุ</label>
+            <input type="text" id="f-street" placeholder="บ้านเลขที่ / ถนน / จุดสังเกต...">
           </div>
         </div>
 
@@ -637,24 +635,13 @@
         </div>
       </div>
 
-      <!-- Victim -->
-      <div class="card">
-        <div class="card-header">
-          <div class="icon" style="background:#FAEEDA">🏥</div>
-          <div class="card-title">ข้อมูลผู้เสียหาย</div>
-        </div>
-        <div class="choice-label">ทราบผู้เสียหายหรือไม่</div>
-        <div class="radio-pills" style="margin-bottom:12px;">
-          <div class="radio-pill"><input type="radio" name="victim-known" id="vk-yes" value="known" onchange="show('victim-sub',true)"><label for="vk-yes">ทราบ</label></div>
-          <div class="radio-pill"><input type="radio" name="victim-known" id="vk-no" value="unknown" onchange="show('victim-sub',false)"><label for="vk-no">ไม่ทราบ</label></div>
-        </div>
-        <div id="victim-sub" style="display:none;">
-          <div id="victims-list"></div>
-          <button type="button" class="btn btn-outline" style="margin-top:4px;width:100%;" onclick="addVictim()">+ เพิ่มผู้เสียหาย</button>
-        </div>
-      </div>
+      <!-- Global datalists (combobox suggestions) -->
+      <datalist id="list-prefix"><option value="นาย"><option value="นาง"><option value="น.ส."></datalist>
+      <datalist id="list-rank"><option value="พ.ต.อ."><option value="พ.ต.ท."><option value="พ.ต.ต."><option value="ร.ต.อ."><option value="ร.ต.ท."><option value="ร.ต.ต."><option value="ด.ต."><option value="ส.ต.อ."></datalist>
+      <datalist id="list-unit"><option value="ชิ้น"><option value="คัน"><option value="เครื่อง"><option value="อัน"><option value="เส้น"><option value="กระบอก"><option value="บาท"></datalist>
+      <datalist id="list-station"></datalist>
 
-      <!-- Perpetrator -->
+      <!-- Perpetrator (ย้ายขึ้นก่อนผู้เสียหาย) -->
       <div class="card">
         <div class="card-header">
           <div class="icon" style="background:var(--red-light)">⚠️</div>
@@ -678,12 +665,63 @@
           <div class="choice-label" style="margin-top:4px;">ทราบข้อมูลผู้ก่อเหตุหรือไม่</div>
           <div class="radio-pills" style="margin-bottom:12px;">
             <div class="radio-pill"><input type="radio" name="perp-known" id="pk-yes" value="known" onchange="show('perp-sub',true)"><label for="pk-yes">ทราบ</label></div>
-            <div class="radio-pill"><input type="radio" name="perp-known" id="pk-no"  value="unknown" onchange="show('perp-sub',false)"><label for="pk-no">ไม่ทราบ</label></div>
+            <div class="radio-pill"><input type="radio" name="perp-known" id="pk-no"  value="unknown" onchange="show('perp-sub',false)" checked><label for="pk-no">ไม่ทราบ</label></div>
           </div>
           <div id="perp-sub" style="display:none;">
             <div id="perps-known-list"></div>
             <button type="button" class="btn btn-outline" style="margin-top:4px;width:100%;" onclick="addPerp('known')">+ เพิ่มผู้ก่อเหตุ</button>
           </div>
+        </div>
+      </div>
+
+      <!-- Victim -->
+      <div class="card">
+        <div class="card-header">
+          <div class="icon" style="background:#FAEEDA">🏥</div>
+          <div class="card-title">ข้อมูลผู้เสียหาย</div>
+        </div>
+        <div class="choice-label">ทราบผู้เสียหายหรือไม่</div>
+        <div class="radio-pills" style="margin-bottom:12px;">
+          <div class="radio-pill"><input type="radio" name="victim-known" id="vk-yes" value="known" onchange="show('victim-sub',true)"><label for="vk-yes">ทราบ</label></div>
+          <div class="radio-pill"><input type="radio" name="victim-known" id="vk-no" value="unknown" onchange="show('victim-sub',false)" checked><label for="vk-no">ไม่ทราบ</label></div>
+        </div>
+        <div id="victim-sub" style="display:none;">
+          <div id="victims-list"></div>
+          <button type="button" class="btn btn-outline" style="margin-top:4px;width:100%;" onclick="addVictim()">+ เพิ่มผู้เสียหาย</button>
+        </div>
+      </div>
+
+      <!-- Evidence (ของกลาง) -->
+      <div class="card">
+        <div class="card-header">
+          <div class="icon" style="background:#E6F1FB">📦</div>
+          <div class="card-title">ของกลาง</div>
+        </div>
+        <div class="choice-label">มีของกลางหรือไม่</div>
+        <div class="radio-pills" style="margin-bottom:12px;">
+          <div class="radio-pill"><input type="radio" name="evidence" id="ev-yes" value="yes" onchange="show('evidence-sub',true)"><label for="ev-yes">มี</label></div>
+          <div class="radio-pill"><input type="radio" name="evidence" id="ev-no" value="no" onchange="show('evidence-sub',false)" checked><label for="ev-no">ไม่มี</label></div>
+        </div>
+        <div id="evidence-sub" style="display:none;">
+          <div id="evidence-list"></div>
+          <button type="button" class="btn btn-outline" style="margin-top:4px;width:100%;" onclick="addEvidence()">+ เพิ่มรายการของกลาง</button>
+        </div>
+      </div>
+
+      <!-- Damages (ทรัพย์สินที่เสียหาย) -->
+      <div class="card">
+        <div class="card-header">
+          <div class="icon" style="background:#FAEEDA">💸</div>
+          <div class="card-title">ทรัพย์สินที่เสียหาย</div>
+        </div>
+        <div class="choice-label">มีทรัพย์สินเสียหายหรือไม่</div>
+        <div class="radio-pills" style="margin-bottom:12px;">
+          <div class="radio-pill"><input type="radio" name="damage" id="dmg-yes" value="yes" onchange="show('damage-sub',true)"><label for="dmg-yes">มี</label></div>
+          <div class="radio-pill"><input type="radio" name="damage" id="dmg-no" value="no" onchange="show('damage-sub',false)" checked><label for="dmg-no">ไม่มี</label></div>
+        </div>
+        <div id="damage-sub" style="display:none;">
+          <div id="damages-list"></div>
+          <button type="button" class="btn btn-outline" style="margin-top:4px;width:100%;" onclick="addDamage()">+ เพิ่มรายการทรัพย์สิน</button>
         </div>
       </div>
 
@@ -700,12 +738,8 @@
           <div class="radio-pill"><input type="radio" name="weapon" id="w-unk" value="unknown" onchange="showWeapon('unknown')"><label for="w-unk">ไม่ทราบ</label></div>
         </div>
         <div id="weapon-sub" style="display:none;">
-          <div class="sub-box">
-            <div class="form-grid">
-              <div class="field"><label>ชนิดอาวุธ</label><input type="text" id="w-type" placeholder="เช่น มีด ปืน ของแข็ง"></div>
-              <div class="field"><label>รายละเอียดเพิ่มเติม</label><input type="text" id="w-detail" placeholder="ลักษณะ สี ขนาด ฯลฯ"></div>
-            </div>
-          </div>
+          <div id="weapons-list"></div>
+          <button type="button" class="btn btn-outline" style="margin-top:4px;width:100%;" onclick="addWeapon()">+ เพิ่มรายการอาวุธ</button>
         </div>
       </div>
 
@@ -720,7 +754,7 @@
         <div class="form-grid col1" style="margin-bottom:4px;">
           <div class="field">
             <label>พื้นที่รับผิดชอบของ สภ.</label>
-            <input type="text" id="station-area" placeholder="เช่น สภ.เมืองเชียงใหม่ / ท้องที่ตำบล..." oninput="onStationInput(this.value)">
+            <input type="text" id="station-area" data-combo="list-station" autocomplete="off" placeholder="เลือก/พิมพ์ สภ. (อิงพื้นที่เกิดเหตุ)" oninput="onStationInput(this.value)">
           </div>
         </div>
 
@@ -732,12 +766,12 @@
           <div style="font-size:12px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:10px;">👮 ร้อยเวรผู้รับผิดชอบ</div>
           <div class="form-grid cols3" style="margin-bottom:16px;">
             <div class="field">
-              <label>ชื่อ-นามสกุล</label>
-              <input type="text" id="do-name" placeholder="ชื่อ นามสกุล">
+              <label>ยศ</label>
+              <input type="text" id="do-rank" data-combo="list-rank" autocomplete="off" placeholder="เช่น พ.ต.อ., พ.ต.ท.">
             </div>
             <div class="field">
-              <label>ตำแหน่ง / ยศ</label>
-              <input type="text" id="do-rank" placeholder="เช่น ร.ต.ท., ร.ต.อ.">
+              <label>ชื่อ-สกุล</label>
+              <input type="text" id="do-name" placeholder="ชื่อ นามสกุล">
             </div>
             <div class="field">
               <label>เบอร์โทรศัพท์</label>
@@ -749,12 +783,17 @@
           <div style="font-size:12px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:10px;">⭐ หัวหน้าสถานี</div>
           <div class="form-grid cols3">
             <div class="field">
-              <label>ชื่อ-นามสกุล</label>
-              <input type="text" id="chief-name" placeholder="ชื่อ นามสกุล">
+              <label>ยศ</label>
+              <select id="chief-rank">
+                <option value="">— เลือกยศ —</option>
+                <option value="พล.ต.ต.">พล.ต.ต.</option>
+                <option value="พ.ต.อ.">พ.ต.อ.</option>
+                <option value="พ.ต.ท.">พ.ต.ท.</option>
+              </select>
             </div>
             <div class="field">
-              <label>ตำแหน่ง / ยศ</label>
-              <input type="text" id="chief-rank" placeholder="เช่น พ.ต.อ., พ.ต.ท.">
+              <label>ชื่อ-สกุล</label>
+              <input type="text" id="chief-name" placeholder="ชื่อ นามสกุล">
             </div>
             <div class="field">
               <label>เบอร์โทรศัพท์</label>
@@ -777,7 +816,7 @@
           <div>
             <!-- 1. Images -->
             <div class="upload-section" style="margin-bottom:18px;">
-              <div class="upload-label">รูปภาพ <span class="upload-hint">(ไม่เกิน 7 รูป · jpg, png, gif, webp, heic)</span></div>
+              <div class="upload-label">รูปภาพ <span class="upload-hint">(ไม่เกิน 8 รูป · jpg, png, gif, webp, heic)</span></div>
               <div class="drop-zone" id="drop-img" onclick="document.getElementById('input-img').click()" ondragover="dzOver(event,'drop-img')" ondragleave="dzLeave('drop-img')" ondrop="dzDrop(event,'input-img','img')">
                 <div class="dz-icon">🖼️</div>
                 <div class="dz-text">คลิกหรือลากรูปมาวางที่นี่</div>
@@ -785,6 +824,18 @@
               </div>
               <input type="file" id="input-img" accept="image/*" multiple style="display:none" onchange="handleFiles(this,'img')">
               <div class="file-preview-grid" id="preview-img"></div>
+            </div>
+
+            <!-- 1b. Summary images from PowerPoint -->
+            <div class="upload-section" style="margin-bottom:18px;">
+              <div class="upload-label">รูปสรุปรายงานจาก PowerPoint <span class="upload-hint">(ไม่เกิน 2 รูป · ภาพ export จากสไลด์สรุป)</span></div>
+              <div class="drop-zone" id="drop-summary" onclick="document.getElementById('input-summary').click()" ondragover="dzOver(event,'drop-summary')" ondragleave="dzLeave('drop-summary')" ondrop="dzDrop(event,'input-summary','summary')">
+                <div class="dz-icon">📈</div>
+                <div class="dz-text">คลิกหรือลากรูปสรุปมาวางที่นี่</div>
+                <div class="dz-sub">jpg · png (สูงสุด 2 รูป)</div>
+              </div>
+              <input type="file" id="input-summary" accept="image/*" multiple style="display:none" onchange="handleFiles(this,'summary')">
+              <div class="file-preview-grid" id="preview-summary"></div>
             </div>
 
             <!-- 2. PowerPoint -->
@@ -826,7 +877,11 @@
             <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px;">
               <div style="display:flex;align-items:center;justify-content:space-between;font-size:13px;">
                 <span>🖼️ รูปภาพ</span>
-                <span id="summary-img-num" style="font-weight:700;color:var(--green);">0 / 7</span>
+                <span id="summary-img-num" style="font-weight:700;color:var(--green);">0 / 8</span>
+              </div>
+              <div style="display:flex;align-items:center;justify-content:space-between;font-size:13px;">
+                <span>📈 รูปสรุป</span>
+                <span id="summary-summary-num" style="font-weight:700;color:var(--green);">0 / 2</span>
               </div>
               <div style="display:flex;align-items:center;justify-content:space-between;font-size:13px;">
                 <span>📊 Powerpoint</span>
@@ -850,6 +905,19 @@
             </div>
           </div>
 
+        </div>
+      </div>
+
+      <!-- Case status -->
+      <div class="card">
+        <div class="card-header">
+          <div class="icon" style="background:#EAF3DE">✅</div>
+          <div class="card-title">สถานะคดี</div>
+        </div>
+        <div class="choice-label">สถานะของคดีนี้</div>
+        <div class="radio-pills">
+          <div class="radio-pill"><input type="radio" name="case-status" id="cs-inprogress" value="inprogress" checked><label for="cs-inprogress">อยู่ระหว่างดำเนินการ</label></div>
+          <div class="radio-pill"><input type="radio" name="case-status" id="cs-done" value="done"><label for="cs-done">ปิดงาน (คดีเสร็จสิ้น)</label></div>
         </div>
       </div>
 
@@ -1050,53 +1118,48 @@
 <div class="toast" id="toast"></div>
 
 <script>
-const GS_URL = 'https://script.google.com/macros/s/AKfycbw6JSC44iLCeGVNuqVVvMI-9XWvJ1yi7IuxeGI84926Xy_HRKIhkHbhh60Et6KZx_9AAw/exec';
+const GS_URL = 'https://script.google.com/macros/s/AKfycbxRUxKi5jrYCs0iPBuO3QW7GEEZxQQtPFoJdBa4haN52cPTrwW-VXFladllNcIF24P5/exec';
 // ไม่ใช้ localStorage สำหรับ records — ดึงจาก Google Sheet อย่างเดียว
 // ล้างข้อมูลเก่าที่อาจค้างอยู่
 localStorage.removeItem('incident_v3');
 localStorage.removeItem('edit_record');
 
-// ── ข้อมูลภูมิศาสตร์: จังหวัด → อำเภอ → ตำบล ──
-const GEO_DATA = {
-  'ตาก': {
-    'เมืองตาก':   ['ระแหง','หนองหลวง','เชียงเงิน','หัวเดียว','ไม้งาม','โป่งแดง','น้ำรึม','วังหิน','ดงชุมหลวง','ป่ามะม่วง','บ้านพระ','วังประจบ','ตลุกกลางทุ่ง'],
-    'บ้านตาก':    ['ตากออก','สมอโคน','แม่สลิด','ตากตก','เกาะตะเภา','ทุ่งกระเชาะ','ท้องฟ้า'],
-    'สามเงา':     ['สามเงา','วังหมัน','ยกกระบัตร','ย่านรี','บ้านนา','วังจันทร์'],
-    'แม่ระมาด':   ['แม่ระมาด','แม่จะเรา','ขะเนจื้อ','แม่ตื่น','สามหมื่น','พระธาตุ'],
-    'ท่าสองยาง':  ['ท่าสองยาง','แม่ต้าน','แม่สอง','แม่หละ','วาเล่ย์','แม่อุสุ'],
-    'แม่สอด':     ['แม่สอด','แม่กุ','มหาวัน','ด่านแม่ละเมา','พระธาตุผาแดง','แม่กาษา','แม่ตาว','แม่โกน','ท่าสายลวด'],
-    'พบพระ':      ['พบพระ','ช่องแคบ','คีรีราษฎร์','วาเล่ย์','รวมไทยพัฒนา'],
-    'อุ้มผาง':    ['อุ้มผาง','หนองหลวง','โมโกร','แม่ละมุ้ง','แม่กลอง','แม่จัน'],
-    'วังเจ้า':    ['วังเจ้า','นาโบสถ์','ประดาง']
-  },
-  'นครสวรรค์': {
-    'เมืองนครสวรรค์': ['นครสวรรค์ตก','นครสวรรค์ออก','บึงเสนาท','บ้านแก่ง','พระนอน','วัดไทรย์','หนองกรด','หนองกระโดน','หนองปลิง','บ้านมะเกลือ','บ้านแป้ง','น้ำทรง','เกรียงไกร','แควใหญ่','ตะเคียนเลื่อน'],
-    'โกรกพระ':    ['โกรกพระ','ยางตาล','บางมะฝ่อ','บางประมุง','นากลาง','ศาลาแดง','เนินกว้าว','เนินศาลา','หาดสูง'],
-    'ชุมแสง':     ['ชุมแสง','ทับกฤช','พิกุล','เกยไชย','ท่าไม้','บางเคียน','หนองกระเจา','พันลาน','โคกหม้อ','อ่างทอง','ฆะมัง','ทับกฤชใต้'],
-    'หนองบัว':    ['หนองบัว','หนองกลับ','ธารทหาร','ห้วยร่วม','ห้วยถั่วเหนือ','ห้วยถั่วใต้','ห้วยใหญ่','ทุ่งทอง','วังบ่อ'],
-    'บรรพตพิสัย': ['บรรพตพิสัย','ท่างิ้ว','บางตาหงาย','หูกวาง','อ่างทอง','บ้านแดน','บางแก้ว','ตาขีด','ตาสัง','ด่านช้าง','หนองตางู','บึงปลาทู','เจริญผล'],
-    'เก้าเลี้ยว':  ['เก้าเลี้ยว','มหาโพธิ','หนองเต่า','เขาดิน','หัวดง'],
-    'ตาคลี':      ['ตาคลี','ช่องแค','จันเสน','ห้วยหอม','หนองโพ','หนองหม้อ','สร้อยทอง','ลาดทิพรส','พรหมนิมิต'],
-    'ท่าตะโก':    ['ท่าตะโก','พนมรอก','หินดาด','หัวถนน','สายลำโพง','วังมหากร','ดอนคา','ทำนบ','วังใหญ่','พันลาน','หนองหลวง'],
-    'ไพศาลี':     ['โคกเดื่อ','สำโรงชัย','วังน้ำลัด','ตะคร้อ','โพธิ์ประสาท','วังข่อย','นาขอม','ไพศาลี'],
-    'พยุหะคีรี':  ['พยุหะ','เนินมะกอก','นิคมเขาบ่อแก้ว','น้ำทอง','ยางขาว','ย่านมัทรี','เขาทอง','ท่าน้ำอ้อย','บ้านแก่ง','สระทะเล'],
-    'ลาดยาว':     ['ลาดยาว','ห้วยน้ำหอม','วังม้า','วังเมือง','สร้อยละคร','มาบแก','หนองยาว','หนองนมวัว','บ้านไร่','เนินขี้เหล็ก','ศาลเจ้าไก่ต่อ','สระแก้ว'],
-    'ตากฟ้า':     ['ตากฟ้า','ลำพยนต์','สุขสำราญ','หนองพิกุล','พุนกยูง','อุดมธัญญา','เขาชายธง'],
-    'แม่วงก์':    ['แม่วงก์','แม่เล่ย์','วังซ่าน','เขาชนกัน'],
-    'แม่เปิน':    ['แม่เปิน'],
-    'ชุมตาบง':    ['ชุมตาบง','ปางสวรรค์']
-  },
-  'อุทัยธานี': {
-    'เมืองอุทัยธานี': ['อุทัยใหม่','น้ำซึม','สะแกกรัง','ดอนขวาง','หาดทนง','เกาะเทโพ','ท่าซุง','หนองแก','หนองไผ่แบน','หนองพังค่า','ทุ่งใหญ่','เนินแจง'],
-    'ทัพทัน':     ['ทัพทัน','ทุ่งนาไทย','เมืองการุ้ง','แก่นมะกรูด','หนองหญ้าปล้อง','โคกหม้อ','หนองยายดา','ตลุกดู่'],
-    'สว่างอารมณ์': ['สว่างอารมณ์','หนองหลวง','พลวงสองนาง','ไผ่เขียว','บ่อยาง'],
-    'หนองฉาง':    ['หนองฉาง','หนองยาง','หนองนางนวล','หนองชาติ','น้ำรอบ','ทุ่งโพ','เขาบางแกรก','ระบำ'],
-    'หนองขาหย่าง':['หนองขาหย่าง','หนองไผ่','ดอนกลอย','ห้วยรอบ','ทุ่งพึ่ง','ท่าโพ','หมกแถว','หลุมเข้า','ทุ่งนา'],
-    'บ้านไร่':    ['บ้านไร่','ทัพหลวง','ห้วยแห้ง','คอกควาย','วังหิน','เมืองการุ้ง','แก่นมะกรูด','หนองจอก','หูช้าง','บ้านบึง','บึงรั้ว','หนองบ่มกล้วย','เจ้าวัด'],
-    'ลานสัก':     ['ลานสัก','ประดู่ยืน','น้ำรอบ','ทุ่งนางาม','ระบำ'],
-    'ห้วยคต':     ['ห้วยคต','สุขฤทัย','ทองหลาง']
+// ── ข้อมูลภูมิศาสตร์: โหลดจากไฟล์ static geo/ (lazy load รายจังหวัด) ──
+const geoCache = {};      // province -> { amphoe: [tambon...] }
+let provinceList = [];
+
+async function loadProvinces() {
+  try {
+    const res = await fetch('geo/provinces.json');
+    provinceList = await res.json();
+    const sel = document.getElementById('f-province');
+    if (sel) sel.innerHTML = '<option value="">— เลือกจังหวัด —</option>' + provinceList.map(p => `<option value="${p}">${p}</option>`).join('');
+  } catch (e) { console.warn('โหลด provinces.json ไม่ได้', e); }
+  setProvinceDefault();
+  // person cards ถูก render ก่อน provinceList โหลด → re-render ให้ dropdown ที่อยู่มีจังหวัด
+  if (typeof renderVictims === 'function') { renderVictims(); renderPerpsArr(); renderPerpsKnw(); }
+}
+
+// ตั้งจังหวัด default ตามหน่วย (เรียกได้หลัง options พร้อม)
+function setProvinceDefault() {
+  if (currentOperator && UNIT_PROVINCE[currentOperator.unit]) {
+    const prov = UNIT_PROVINCE[currentOperator.unit];
+    const el = document.getElementById('f-province');
+    if (el && !el.value) { el.value = prov; onProvinceInput(prov); }
   }
-};
+}
+
+async function loadGeo(province) {
+  province = (province || '').trim();
+  if (!province) return null;
+  if (geoCache[province]) return geoCache[province];
+  try {
+    const res = await fetch('geo/' + encodeURIComponent(province) + '.json');
+    if (!res.ok) return null;
+    geoCache[province] = await res.json();
+    return geoCache[province];
+  } catch (e) { console.warn('โหลด geo ' + province + ' ไม่ได้', e); return null; }
+}
 
 // map หน่วย → จังหวัด
 const UNIT_PROVINCE = {
@@ -1105,30 +1168,23 @@ const UNIT_PROVINCE = {
   'ชป.อุทัยธานี': 'อุทัยธานี'
 };
 
-function onProvinceInput(province) {
-  const amphoeList = document.getElementById('list-amphoe');
-  const tambonList = document.getElementById('list-tambon');
-  document.getElementById('f-amphoe').value = '';
-  document.getElementById('f-tambon').value = '';
-  tambonList.innerHTML = '';
-  const districts = GEO_DATA[province.trim()];
-  if (districts) {
-    amphoeList.innerHTML = Object.keys(districts).map(a => `<option value="${a}">`).join('');
-  } else {
-    amphoeList.innerHTML = '';
-  }
+async function onProvinceInput(province) {
+  const amSel = document.getElementById('f-amphoe');
+  const tbSel = document.getElementById('f-tambon');
+  amSel.innerHTML = '<option value="">— เลือกอำเภอ —</option>';
+  tbSel.innerHTML = '<option value="">— เลือกตำบล —</option>';
+  const districts = await loadGeo(province);
+  if (districts) amSel.innerHTML += Object.keys(districts).map(a => `<option value="${a}">${a}</option>`).join('');
+  if (typeof refreshStationList === 'function') refreshStationList();
 }
 
-function onAmphoeInput(amphoe) {
+async function onAmphoeInput(amphoe) {
   const province = document.getElementById('f-province').value.trim();
-  const tambonList = document.getElementById('list-tambon');
-  document.getElementById('f-tambon').value = '';
-  const districts = GEO_DATA[province];
-  if (districts && districts[amphoe.trim()]) {
-    tambonList.innerHTML = districts[amphoe.trim()].map(t => `<option value="${t}">`).join('');
-  } else {
-    tambonList.innerHTML = '';
-  }
+  const tbSel = document.getElementById('f-tambon');
+  tbSel.innerHTML = '<option value="">— เลือกตำบล —</option>';
+  const districts = await loadGeo(province);
+  if (districts && districts[(amphoe||'').trim()]) tbSel.innerHTML += districts[amphoe.trim()].map(t => `<option value="${t}">${t}</option>`).join('');
+  if (typeof refreshStationList === 'function') refreshStationList();
 }
 
 function getLocationValue() {
@@ -1142,6 +1198,41 @@ function getLocationValue() {
   if (amphoe)  parts.push('อ.' + amphoe);
   if (province)parts.push('จ.' + province);
   return parts.join(' ');
+}
+
+// ── geo dropdown สำหรับ "ที่อยู่บุคคล" (จังหวัด/อำเภอ/ตำบล จาก geo เหมือนที่เกิดเหตุ) ──
+function provinceOptions(selected) {
+  return provinceList.map(p => `<option value="${p}"${p===selected?' selected':''}>${p}</option>`).join('');
+}
+async function personGeoProv(prefix, idx, presetAmphoe, presetTambon) {
+  const amSel = document.getElementById(`${prefix}-amp-${idx}`);
+  const tmSel = document.getElementById(`${prefix}-tam-${idx}`);
+  if (!amSel || !tmSel) return;
+  const prov = document.getElementById(`${prefix}-prov-${idx}`).value;
+  amSel.innerHTML = '<option value="">— อำเภอ —</option>';
+  tmSel.innerHTML = '<option value="">— ตำบล —</option>';
+  const d = await loadGeo(prov);
+  if (d) amSel.innerHTML += Object.keys(d).map(a => `<option value="${a}">${a}</option>`).join('');
+  if (presetAmphoe) { amSel.value = presetAmphoe; await personGeoAmp(prefix, idx, presetTambon); }
+}
+async function personGeoAmp(prefix, idx, presetTambon) {
+  const tmSel = document.getElementById(`${prefix}-tam-${idx}`);
+  if (!tmSel) return;
+  const prov = document.getElementById(`${prefix}-prov-${idx}`).value;
+  const amp  = document.getElementById(`${prefix}-amp-${idx}`).value;
+  tmSel.innerHTML = '<option value="">— ตำบล —</option>';
+  const d = await loadGeo(prov);
+  if (d && d[amp]) tmSel.innerHTML += d[amp].map(t => `<option value="${t}">${t}</option>`).join('');
+  if (presetTambon) tmSel.value = presetTambon;
+}
+// เติม dropdown ที่อยู่ของแต่ละคนหลัง render (กรณีมีค่าเดิม)
+function hydratePersonGeo(prefix, arr) {
+  arr.forEach((p, i) => {
+    if (p && p.addrProvince) {
+      const sel = document.getElementById(`${prefix}-prov-${i}`);
+      if (sel) { sel.value = p.addrProvince; personGeoProv(prefix, i, p.addrAmphoe, p.addrTambon); }
+    }
+  });
 }
 
 // ── Validation ──
@@ -1166,8 +1257,9 @@ function validateBeforeSave() {
   if (!stationArea) missing.push('ข้อมูลสถานี — พื้นที่รับผิดชอบของ สภ.');
   if (!doName)      missing.push('ข้อมูลสถานี — ชื่อร้อยเวรผู้รับผิดชอบ');
   if (!chiefName)   missing.push('ข้อมูลสถานี — ชื่อหัวหน้าสถานี');
-  // 6. ไฟล์ภาพ
-  if (!fileStore || fileStore.img.length === 0)
+  // 6. ไฟล์ภาพ (โหมดแก้ไข: มีไฟล์เดิมอยู่แล้ว ไม่บังคับแนบใหม่)
+  const hadImg = editingRef && (records.find(r => r.ref === editingRef)?.imgUrls||[]).length > 0;
+  if ((!fileStore || fileStore.img.length === 0) && !hadImg)
     missing.push('ไฟล์ภาพ — แนบรูปภาพอย่างน้อย 1 รูป');
   return missing;
 }
@@ -1411,6 +1503,11 @@ async function doLogin() {
 
 function finishLogin(unit, data) {
   const op = { unit, name: data.name, rank: data.rank || '', position: data.position || '', phone: _checkedPhone };
+  // token ผู้ใช้รายวัน — ใช้ดึงข้อมูล getRecords (กันข้อมูลรั่ว)
+  if (data.userToken) {
+    sessionStorage.setItem('userToken', data.userToken);
+    sessionStorage.setItem('userPhone', data.phone || _checkedPhone);
+  }
   if (data.isAdmin && data.token) {
     isAdmin = true;
     sessionStorage.setItem('isAdmin', 'true');
@@ -1445,12 +1542,16 @@ function showApp(op) {
 
 async function loadRecordsFromGSheets() {
   try {
-    const res = await fetch(GS_URL + '?action=getRecords');
+    const u = sessionStorage.getItem('userPhone') || '';
+    const t = sessionStorage.getItem('userToken') || '';
+    const res = await fetch(GS_URL + '?action=getRecords&u=' + encodeURIComponent(u) + '&t=' + encodeURIComponent(t));
     const data = await res.json();
+    if (data && data.status === 'error') { toast('ไม่มีสิทธิ์ดึงข้อมูล — กรุณาเข้าสู่ระบบใหม่', 'error'); return; }
     if (Array.isArray(data)) {
       records = data;
       document.getElementById('record-count-sidebar').textContent = 'รายการทั้งหมด: ' + records.length;
       if (data.length > 0) toast('โหลดข้อมูล ' + data.length + ' รายการ ✓', 'success');
+      if (typeof updateNotiBadge === 'function') updateNotiBadge();
     }
   } catch(e) {
     toast('โหลดข้อมูลไม่สำเร็จ — ตรวจสอบอินเทอร์เน็ต', 'error');
@@ -1523,334 +1624,10 @@ else { checkGsConnection(); }
 // อัพเดท UI Admin (กรณี refresh หน้า แต่ยัง login อยู่)
 updateAdminUI();
 
-const APPS_SCRIPT = `// ════════════════════════════════════════
-// ระบบบันทึกเหตุการณ์ — กก.สืบสวน 3
-// Google Apps Script (ติดอยู่ใน Google Sheet: case_data)
-// Sheet ID: 1UCei4siJkYCV00x4HEbSu3ug7qcOXbdCWWOOyFW4xSo
-// Tab 1: "case"    — บันทึกเหตุการณ์
-// Tab 2: "officer" — ข้อมูลเจ้าหน้าที่ (คอลัมน์: หน่วย|ชื่อ|ยศ|ตำแหน่ง|เบอร์โทร|pin)
-// Deploy URL ล่าสุด:
-//   https://script.google.com/macros/s/AKfycbyWQ--ibH8b573HO9hXfjA-T4gJ5hOphXyyzIwaBR98QRh3FiSASeqIVzC3rhZ-_zKgPQ/exec
-// ════════════════════════════════════════
+const APPS_SCRIPT = `วางโค้ด Backend จากไฟล์  apps_script_v2.gs  ในโปรเจกต์
+(เพื่อความปลอดภัย ไม่ฝังโค้ด Backend และรหัสลับไว้ในหน้าเว็บสาธารณะ)
 
-// ── รหัสลับสำหรับสร้าง Admin Token (เปลี่ยนได้ — อย่าบอกใคร) ──
-var ADMIN_SECRET = 'KK3@สืบสวน3#2568secret';
-
-// helper: JSON response
-function jsonOut(obj) {
-  return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);
-}
-
-// สร้าง token รายวัน: MD5(ชื่อ|SECRET|วันที่) → hex string
-function makeAdminToken(name) {
-  var dateStr = Utilities.formatDate(new Date(), 'Asia/Bangkok', 'yyyyMMdd');
-  var raw = name + '|' + ADMIN_SECRET + '|' + dateStr;
-  var digest = Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, raw, Utilities.Charset.UTF_8);
-  return digest.map(function(b) { var h = (b < 0 ? b + 256 : b).toString(16); return h.length === 1 ? '0' + h : h; }).join('');
-}
-
-function doGet(e) {
-  var action = e.parameter.action || '';
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var output;
-
-  if (action === 'getStaff') {
-    var unit = e.parameter.unit || '';
-    var sheet = ss.getSheetByName('officer');
-    if (!sheet) {
-      output = [];
-    } else {
-      var rows = sheet.getDataRange().getValues();
-      var result = [];
-      for (var i = 1; i < rows.length; i++) {
-        if (!rows[i][0]) continue;
-        if (!unit || rows[i][0] == unit) {
-          result.push({
-            unit: rows[i][0]||'', name: rows[i][1]||'',
-            rank: rows[i][2]||'', position: rows[i][3]||'', phone: rows[i][4]||''
-          });
-        }
-      }
-      output = result;
-    }
-
-  } else if (action === 'getRecords') {
-    var sheet = ss.getSheetByName('case');
-    if (!sheet) {
-      output = [];
-    } else {
-      var rows = sheet.getDataRange().getValues();
-      var result = [];
-      for (var i = 1; i < rows.length; i++) {
-        if (!rows[i][0]) continue;
-        result.push({
-          ref: rows[i][0], date: rows[i][1], time: rows[i][2],
-          location: rows[i][3], type: rows[i][4], detail: rows[i][5],
-          operator: { unit: rows[i][6], rank: rows[i][7], name: rows[i][8], position: rows[i][9], phone: rows[i][10] },
-          stationArea: rows[i][11],
-          dutyOfficer: { name: rows[i][12], rank: rows[i][13], phone: rows[i][14] },
-          stationChief: { name: rows[i][15], rank: rows[i][16], phone: rows[i][17] },
-          victimKnown: !!rows[i][18],
-          victim: rows[i][18] ? { name: rows[i][18], age: rows[i][19], phone: rows[i][20], id: rows[i][21], addr: rows[i][22] } : null,
-          arrested: rows[i][23],
-          perp: rows[i][24] ? { name: rows[i][24], age: rows[i][25], id: rows[i][26], addr: rows[i][27] } : null,
-          weapon: rows[i][28], weaponType: rows[i][29], weaponDetail: rows[i][30],
-          createdAt: rows[i][31],
-          imgUrls: rows[i][32] ? rows[i][32].toString().split('|').filter(Boolean) : [],
-          pptUrls: rows[i][33] ? rows[i][33].toString().split('|').filter(Boolean) : [],
-          docUrls: rows[i][34] ? rows[i][34].toString().split('|').filter(Boolean) : [],
-          status: rows[i][35] ? rows[i][35].toString() : ''
-        });
-      }
-      output = result;
-    }
-
-  } else {
-    output = { status: 'ok', message: 'API พร้อมใช้งาน' };
-  }
-
-  return ContentService
-    .createTextOutput(JSON.stringify(output))
-    .setMimeType(ContentService.MimeType.JSON);
-}
-
-function doPost(e) {
-  try {
-    // รองรับทั้ง application/x-www-form-urlencoded (payload=...) และ text/plain (raw JSON body)
-    var raw = (e.parameter && e.parameter.payload) ? e.parameter.payload : (e.postData ? e.postData.contents : '{}');
-    var d = JSON.parse(raw);
-
-    // ── อัพโหลดไฟล์ไปยัง Google Drive ──
-    if (d.action === 'uploadFile') {
-      var folderName = 'กก_สืบสวน3_ไฟล์แนบ';
-      var folders = DriveApp.getFoldersByName(folderName);
-      var folder = folders.hasNext() ? folders.next() : DriveApp.createFolder(folderName);
-      var bytes = Utilities.base64Decode(d.base64);
-      var blob = Utilities.newBlob(bytes, d.mimeType || 'application/octet-stream', (d.ref||'file') + '_' + (d.filename||'file'));
-      var file = folder.createFile(blob);
-      file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-      return jsonOut({
-        status: 'ok',
-        url: 'https://drive.google.com/file/d/' + file.getId() + '/view',
-        name: file.getName()
-      });
-    }
-
-    var ss = SpreadsheetApp.getActiveSpreadsheet();
-
-    // ── checkPhone: ตรวจว่าเบอร์มีในระบบและมี PIN หรือไม่ ──
-    if (d.action === 'checkPhone') {
-      var offSheet = ss.getSheetByName('officer');
-      if (!offSheet) return jsonOut({status:'error', msg:'ไม่พบข้อมูลเจ้าหน้าที่'});
-      var offRows = offSheet.getDataRange().getValues();
-      var inputDigits = String(d.phone || '').replace(/\D/g, '');
-      if (!inputDigits) return jsonOut({status:'error', msg:'กรุณากรอกเบอร์โทร'});
-      for (var i = 1; i < offRows.length; i++) {
-        if (String(offRows[i][0] || '') !== String(d.unit || '')) continue;
-        var sheetDigits = String(offRows[i][4] || '').replace(/\D/g, '');
-        if (inputDigits === sheetDigits) {
-          var hasPin = !!(offRows[i][5] && String(offRows[i][5]).trim());
-          return jsonOut({status:'ok', hasPin: hasPin});
-        }
-      }
-      return jsonOut({status:'error', msg:'ไม่พบเบอร์โทรนี้ในระบบ'});
-    }
-
-    // ── setPin: บันทึก PIN ครั้งแรก ──
-    if (d.action === 'setPin') {
-      var offSheet = ss.getSheetByName('officer');
-      if (!offSheet) return jsonOut({status:'error', msg:'ไม่พบข้อมูลเจ้าหน้าที่'});
-      // บังคับ column F เป็น plain text
-      offSheet.getRange('F:F').setNumberFormat('@STRING@');
-      var offRows = offSheet.getDataRange().getValues();
-      // เพิ่ม header "pin" ถ้ายังไม่มี
-      if (offRows.length > 0 && String(offRows[0][5] || '').trim() === '') {
-        offSheet.getRange(1, 6).setValue('pin');
-      }
-      var inputDigits = String(d.phone || '').replace(/\D/g, '');
-      var pin = String(d.pin || '').trim();
-      if (!inputDigits || !/^\d{6}$/.test(pin)) return jsonOut({status:'error', msg:'ข้อมูลไม่ถูกต้อง — PIN ต้องเป็นตัวเลข 6 หลัก'});
-      for (var i = 1; i < offRows.length; i++) {
-        if (String(offRows[i][0] || '') !== String(d.unit || '')) continue;
-        var sheetDigits = String(offRows[i][4] || '').replace(/\D/g, '');
-        if (inputDigits === sheetDigits) {
-          if (offRows[i][5] && String(offRows[i][5]).trim()) {
-            return jsonOut({status:'error', msg:'มี PIN อยู่แล้ว — ติดต่อ Admin เพื่อ reset'});
-          }
-          offSheet.getRange(i + 1, 6).setValue(pin);
-          var name = String(offRows[i][1] || '');
-          var rank = String(offRows[i][2] || '');
-          var position = String(offRows[i][3] || '');
-          var resp = {status:'ok', name:name, rank:rank, position:position};
-          if (String(d.unit) === 'ธุรการ') { resp.isAdmin = true; resp.token = makeAdminToken(name); }
-          return jsonOut(resp);
-        }
-      }
-      return jsonOut({status:'error', msg:'ไม่พบเบอร์โทรนี้ในระบบ'});
-    }
-
-    // ── verifyLogin: ตรวจสอบ phone + PIN (ทุกหน่วยรวม ธุรการ) ──
-    if (d.action === 'verifyLogin') {
-      var offSheet = ss.getSheetByName('officer');
-      if (!offSheet) return jsonOut({status:'error', msg:'ไม่พบข้อมูลเจ้าหน้าที่'});
-      var offRows = offSheet.getDataRange().getValues();
-      var inputDigits = String(d.phone || '').replace(/\D/g, '');
-      var pin = String(d.pin || '').trim();
-      if (!inputDigits || !pin) return jsonOut({status:'error', msg:'กรุณากรอกข้อมูลให้ครบ'});
-      for (var i = 1; i < offRows.length; i++) {
-        if (String(offRows[i][0] || '') !== String(d.unit || '')) continue;
-        var sheetDigits = String(offRows[i][4] || '').replace(/\D/g, '');
-        if (inputDigits === sheetDigits) {
-          var sheetPin = String(offRows[i][5] || '').trim();
-          if (!sheetPin) return jsonOut({status:'error', msg:'ยังไม่มี PIN — กรุณาตั้ง PIN ก่อน'});
-          if (pin !== sheetPin) return jsonOut({status:'error', msg:'PIN ไม่ถูกต้อง — กรุณาลองใหม่'});
-          var name = String(offRows[i][1] || '');
-          var rank = String(offRows[i][2] || '');
-          var position = String(offRows[i][3] || '');
-          var resp = {status:'ok', name:name, rank:rank, position:position};
-          if (String(d.unit) === 'ธุรการ') { resp.isAdmin = true; resp.token = makeAdminToken(name); }
-          return jsonOut(resp);
-        }
-      }
-      return jsonOut({status:'error', msg:'ไม่พบเบอร์โทรนี้ในระบบ'});
-    }
-
-    // ── อัพเดทสถานะ ──
-    if (d.action === 'updateStatus') {
-      if (d.status === 'inprogress' && d.adminToken) {
-        var expectedToken = makeAdminToken(d.adminName || '');
-        if (d.adminToken !== expectedToken) {
-          return jsonOut({status:'error', msg:'ไม่มีสิทธิ์ — token ไม่ถูกต้อง'});
-        }
-      }
-      var sheet = ss.getSheetByName('case');
-      if (sheet) {
-        var rows = sheet.getDataRange().getValues();
-        for (var i = 1; i < rows.length; i++) {
-          if (rows[i][0] == d.ref) {
-            var currentStatus = rows[i][35] ? rows[i][35].toString() : '';
-            if (currentStatus === 'done' && d.status === 'inprogress') {
-              var expectedTok = makeAdminToken(d.adminName || '');
-              if (!d.adminToken || d.adminToken !== expectedTok) {
-                return jsonOut({status:'error', msg:'ไม่มีสิทธิ์เปลี่ยนสถานะ — ต้องใช้ Admin'});
-              }
-            }
-            sheet.getRange(i + 1, 36).setValue(d.status);
-            break;
-          }
-        }
-      }
-      return jsonOut({status:'ok'});
-    }
-
-    // ── บันทึกเจ้าหน้าที่ ──
-    if (d.action === 'saveStaff') {
-      var sheet = ss.getSheetByName('officer') || ss.insertSheet('officer');
-      if (sheet.getLastRow() === 0) {
-        sheet.appendRow(['หน่วย','ชื่อ-นามสกุล','ยศ','ตำแหน่ง','เบอร์โทร','pin']);
-      } else {
-        // เพิ่ม header pin ถ้ายังไม่มี
-        var hdr = sheet.getRange(1, 6).getValue();
-        if (String(hdr).trim() === '') sheet.getRange(1, 6).setValue('pin');
-      }
-      sheet.getRange('E:E').setNumberFormat('@STRING@');
-      sheet.getRange('F:F').setNumberFormat('@STRING@');
-      var nextRow = sheet.getLastRow() + 1;
-      sheet.getRange(nextRow, 1, 1, 5).setValues([[
-        d.unit || '', d.name || '', d.rank || '', d.position || '', String(d.phone || '')
-      ]]);
-      return jsonOut({status:'ok'});
-    }
-
-    // ── บันทึกเหตุการณ์ ──
-    var sheet = ss.getSheetByName('case') || ss.insertSheet('case');
-    if (sheet.getLastRow() === 0) {
-      sheet.appendRow([
-        'เลขที่รายงาน','วันที่','เวลา','พื้นที่เกิดเหตุ','ประเภทเหตุ','รายละเอียด',
-        'หน่วยงาน','ผู้บันทึก-ยศ','ผู้บันทึก-ชื่อ','ผู้บันทึก-ตำแหน่ง','ผู้บันทึก-โทร',
-        'สภ.พื้นที่','ร้อยเวร-ชื่อ','ร้อยเวร-ยศ','ร้อยเวร-โทร',
-        'หัวหน้าสถานี-ชื่อ','หัวหน้าสถานี-ยศ','หัวหน้าสถานี-โทร',
-        'ผู้เสียหาย-ชื่อ','ผู้เสียหาย-อายุ','ผู้เสียหาย-โทร','ผู้เสียหาย-บัตร','ผู้เสียหาย-ที่อยู่',
-        'จับกุม','ผู้ก่อเหตุ-ชื่อ','ผู้ก่อเหตุ-อายุ','ผู้ก่อเหตุ-บัตร','ผู้ก่อเหตุ-ที่อยู่',
-        'อาวุธ','ชนิดอาวุธ','รายละเอียดอาวุธ','บันทึกเมื่อ',
-        'imgUrls','pptUrls','docUrls'
-      ]);
-      ['K','O','R','U'].forEach(function(col) {
-        sheet.getRange(col + ':' + col).setNumberFormat('@STRING@');
-      });
-    }
-
-    var op = d.operator || {}, v = d.victim || {}, p = d.perp || {};
-    var do_ = d.dutyOfficer || {}, ch = d.stationChief || {};
-
-    sheet.appendRow([
-      d.ref, d.date, d.time, d.location, d.type, d.detail,
-      op.unit||'', op.rank||'', op.name||'', op.position||'', op.phone||'',
-      d.stationArea||'', do_.name||'', do_.rank||'', do_.phone||'',
-      ch.name||'', ch.rank||'', ch.phone||'',
-      v.name||'', v.age||'', v.phone||'', v.id||'', v.addr||'',
-      d.arrested||'', p.name||'', p.age||'', p.id||'', p.addr||'',
-      d.weapon||'', d.weaponType||'', d.weaponDetail||'',
-      new Date().toLocaleString('th-TH'),
-      (d.imgUrls||[]).join('|'),
-      (d.pptUrls||[]).join('|'),
-      (d.docUrls||[]).join('|')
-    ]);
-
-    return jsonOut({status:'ok', ref:d.ref});
-
-  } catch(err) {
-    return jsonOut({status:'error', msg:err.message});
-  }
-}
-
-// ฟังก์ชันทดสอบ — รันใน editor เพื่อตรวจสอบ permission
-function testAccess() {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  Logger.log('ชื่อไฟล์: ' + ss.getName());
-}
-
-// ════════════════════════════════════════════════════════
-// fixPhoneLeadingZero()
-// รันครั้งเดียวใน Apps Script Editor เพื่อ fix ข้อมูลเก่า
-// ════════════════════════════════════════════════════════
-function fixPhoneLeadingZero() {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var offSheet = ss.getSheetByName('officer');
-  if (offSheet && offSheet.getLastRow() > 1) {
-    var offRange = offSheet.getRange(2, 5, offSheet.getLastRow() - 1, 1);
-    offSheet.getRange('E:E').setNumberFormat('@STRING@');
-    var offVals = offRange.getValues();
-    var fixedOff = offVals.map(function(row) {
-      var phone = String(row[0] || '').replace(/\D/g,'');
-      if (phone.length === 9 && (phone[0]==='8'||phone[0]==='9'||phone[0]==='6')) phone = '0' + phone;
-      if (phone.length === 10) phone = phone.slice(0,3)+'-'+phone.slice(3,6)+'-'+phone.slice(6);
-      return [phone];
-    });
-    offRange.setValues(fixedOff);
-    Logger.log('officer: fix ' + fixedOff.length + ' รายการ');
-  }
-  var caseSheet = ss.getSheetByName('case');
-  if (caseSheet && caseSheet.getLastRow() > 1) {
-    ['K','O','R','U'].forEach(function(col) { caseSheet.getRange(col+':'+col).setNumberFormat('@STRING@'); });
-    var phoneCols = [11, 15, 18, 21];
-    var totalRows = caseSheet.getLastRow() - 1;
-    phoneCols.forEach(function(colIdx) {
-      var rng = caseSheet.getRange(2, colIdx, totalRows, 1);
-      var vals = rng.getValues();
-      var fixed = vals.map(function(row) {
-        var phone = String(row[0] || '').replace(/\D/g,'');
-        if (phone.length === 9 && (phone[0]==='8'||phone[0]==='9'||phone[0]==='6')) phone = '0' + phone;
-        if (phone.length === 10) phone = phone.slice(0,3)+'-'+phone.slice(3,6)+'-'+phone.slice(6);
-        return [phone || String(row[0] || '')];
-      });
-      rng.setValues(fixed);
-    });
-    Logger.log('case: fix column K,O,R,U เรียบร้อย');
-  }
-  Logger.log('✅ fixPhoneLeadingZero เสร็จสิ้น');
-}
-`
+ขั้นตอน: เปิด Google Sheet > Extensions > Apps Script > วางทับ > ใส่ LINE_TOKEN > Deploy (แก้ deployment เดิม)`;
 
 document.getElementById('apps-script-code').value = APPS_SCRIPT;
 
@@ -1880,7 +1657,7 @@ function gotoPage(id, btn) {
   const igBtn = document.getElementById('btn-infographic');
   if (igBtn) igBtn.style.display = (id === 'dashboard') ? 'inline-block' : 'none';
   if (id === 'dashboard') renderDashboard();
-  if (id === 'records') renderTable();
+  if (id === 'records') { renderTable(); if (typeof markNotiSeen === 'function') markNotiSeen(); }
 }
 
 function updateGsStatus() {
@@ -1909,11 +1686,73 @@ function onArrested(val) {
 }
 
 function showWeapon(val) {
-  document.getElementById('weapon-sub').style.display = val === 'yes' ? 'block' : 'none';
+  const show = val === 'yes';
+  document.getElementById('weapon-sub').style.display = show ? 'block' : 'none';
+  if (show && document.getElementById('weapons-list') && !document.getElementById('weapons-list').children.length) renderWeapons();
 }
 
 function onStationInput(v) {
   document.getElementById('officer-block').style.display = v.trim() ? 'block' : 'none';
+}
+
+// ── สภ. directory (combobox อิงพื้นที่ + auto-learn) ──
+let stationCache = [];
+
+async function loadStations() {
+  try {
+    const res = await fetch(GS_URL + '?action=getStations');
+    stationCache = await res.json();
+    if (!Array.isArray(stationCache)) stationCache = [];
+  } catch(e) { console.warn('โหลด stations ไม่ได้', e); stationCache = []; }
+  refreshStationList();
+}
+
+function refreshStationList() {
+  const dl = document.getElementById('list-station');
+  if (!dl) return;
+  const prov = (document.getElementById('f-province')?.value || '').trim();
+  const amphoe = (document.getElementById('f-amphoe')?.value || '').trim();
+  let list = stationCache;
+  if (prov)   list = list.filter(s => !s.province || s.province === prov);
+  // ถ้าระบุอำเภอแล้วและมีตรงกัน → กรองให้แคบลง (ไม่บังคับ)
+  const byAmphoe = amphoe ? list.filter(s => s.amphoe === amphoe) : [];
+  const finalList = byAmphoe.length ? byAmphoe.concat(list.filter(s => s.amphoe !== amphoe)) : list;
+  dl.innerHTML = finalList.map(s => `<option value="${s.station}">`).join('');
+}
+
+// ── Noti แจ้งคดีใหม่ในพื้นที่ (เก็บ lastSeen ในเครื่อง) ──
+function provFromRecord(r) {
+  if (r.province) return r.province;
+  const m = String(r.location||'').match(/จ\.(\S+)/);
+  return m ? m[1] : '';
+}
+function notiUserProvince() {
+  const u = currentOperator?.unit;
+  if (!u || u === 'ธุรการ') return null;       // ธุรการ + ไม่มีหน่วย = ไม่รับ noti
+  return UNIT_PROVINCE[u] || null;             // ชป.พื้นที่อื่นจะ match เฉพาะจังหวัดตัวเอง
+}
+function notiKey() { return 'lastSeen_' + (currentOperator?.phone || 'anon'); }
+function getUnseenCount() {
+  const prov = notiUserProvince();
+  if (!prov) return 0;
+  let last = parseInt(localStorage.getItem(notiKey()) || '0', 10);
+  if (!last) { last = Date.now(); localStorage.setItem(notiKey(), String(last)); return 0; }
+  return records.filter(r => {
+    if (provFromRecord(r) !== prov) return false;
+    const t = Date.parse(r.createdAt);
+    return !isNaN(t) && t > last;
+  }).length;
+}
+function updateNotiBadge() {
+  const badge = document.getElementById('noti-badge');
+  if (!badge) return;
+  const n = getUnseenCount();
+  if (n > 0) { badge.textContent = n > 99 ? '99+' : n; badge.style.display = 'inline-block'; }
+  else badge.style.display = 'none';
+}
+function markNotiSeen() {
+  if (notiUserProvince()) localStorage.setItem(notiKey(), String(Date.now()));
+  updateNotiBadge();
 }
 
 function onDetailSelect(v) {
@@ -1968,15 +1807,7 @@ function init() {
   document.getElementById('today-label').textContent = now.toLocaleDateString('th-TH', {weekday:'long',year:'numeric',month:'long',day:'numeric'});
   document.getElementById('record-count-sidebar').textContent = 'รายการทั้งหมด: ' + records.length;
   updateGsStatus();
-  // auto-set province based on unit
-  if (currentOperator && UNIT_PROVINCE[currentOperator.unit]) {
-    const prov = UNIT_PROVINCE[currentOperator.unit];
-    const provEl = document.getElementById('f-province');
-    if (provEl && !provEl.value) {
-      provEl.value = prov;
-      onProvinceInput(prov);
-    }
-  }
+  setProvinceDefault();  // ตั้งจังหวัด default ตามหน่วย (ถ้า options พร้อม)
 }
 
 function val(id) { return document.getElementById(id)?.value?.trim() || ''; }
@@ -1995,30 +1826,33 @@ async function saveRecord() {
   const victimKnown = document.querySelector('input[name="victim-known"]:checked').value === 'known';
   const perpKnown = arrested === 'yes' ? true : document.querySelector('input[name="perp-known"]:checked').value === 'known';
   const weaponVal = document.querySelector('input[name="weapon"]:checked').value;
+  const damageVal = document.querySelector('input[name="damage"]:checked').value;
+  const evidenceVal = document.querySelector('input[name="evidence"]:checked').value;
+  const caseStatus = document.querySelector('input[name="case-status"]:checked').value;
   const ref = val('f-ref');
+  const isEdit = !!editingRef;
+  const existing = isEdit ? (records.find(r => r.ref === ref) || {}) : {};
 
   // อัพโหลดไฟล์แนบไปยัง Google Drive
-  let imgUrls = [], pptUrls = [], docUrls = [];
-  const hasFiles = fileStore.img.length + fileStore.ppt.length + fileStore.doc.length > 0;
-  if (hasFiles) {
+  const toFileStr = obj => (obj && obj.url) ? (obj.name ? obj.name + '☆' + obj.url : obj.url) : null;
+  const up = async arr => (await Promise.all(arr.map(f => uploadFileToDrive(f, ref)))).map(toFileStr).filter(Boolean);
+  let imgUrls = [], summaryImgUrls = [], pptUrls = [], docUrls = [];
+  const totalCount = fileStore.img.length + fileStore.summary.length + fileStore.ppt.length + fileStore.doc.length;
+  if (totalCount > 0) {
     toast('⏳ กำลังอัพโหลดไฟล์แนบ...', '');
-    // แปลง {url, name} → "name☆url" เพื่อเก็บทั้งชื่อไฟล์และ URL ลงใน Google Sheet
-    const toFileStr = obj => (obj && obj.url) ? (obj.name ? obj.name + '☆' + obj.url : obj.url) : null;
-    const rawImg = await Promise.all(fileStore.img.map(f => uploadFileToDrive(f, ref)));
-    const rawPpt = await Promise.all(fileStore.ppt.map(f => uploadFileToDrive(f, ref)));
-    const rawDoc = await Promise.all(fileStore.doc.map(f => uploadFileToDrive(f, ref)));
-    console.log('[saveRecord] upload results img:', rawImg, 'ppt:', rawPpt, 'doc:', rawDoc);
-    imgUrls = rawImg.map(toFileStr).filter(Boolean);
-    pptUrls = rawPpt.map(toFileStr).filter(Boolean);
-    docUrls = rawDoc.map(toFileStr).filter(Boolean);
-    const successCount = imgUrls.length + pptUrls.length + docUrls.length;
-    const totalCount = fileStore.img.length + fileStore.ppt.length + fileStore.doc.length;
-    if (successCount < totalCount) {
-      toast(`⚠️ อัพโหลดสำเร็จ ${successCount}/${totalCount} ไฟล์ — บางไฟล์อาจล้มเหลว`, 'error');
-    } else {
-      toast(`✅ อัพโหลดไฟล์สำเร็จ ${successCount} ไฟล์`, 'success');
-    }
-    console.log('[saveRecord] imgUrls:', imgUrls, 'pptUrls:', pptUrls, 'docUrls:', docUrls);
+    imgUrls = await up(fileStore.img);
+    summaryImgUrls = await up(fileStore.summary);
+    pptUrls = await up(fileStore.ppt);
+    docUrls = await up(fileStore.doc);
+    const successCount = imgUrls.length + summaryImgUrls.length + pptUrls.length + docUrls.length;
+    toast(successCount < totalCount ? `⚠️ อัพโหลดสำเร็จ ${successCount}/${totalCount} ไฟล์` : `✅ อัพโหลดไฟล์สำเร็จ ${successCount} ไฟล์`, successCount < totalCount ? 'error' : 'success');
+  }
+  // โหมดแก้ไข: merge ไฟล์ใหม่กับของเดิม (ไม่ทับ)
+  if (isEdit) {
+    imgUrls = (existing.imgUrls||[]).concat(imgUrls);
+    summaryImgUrls = (existing.summaryImgUrls||[]).concat(summaryImgUrls);
+    pptUrls = (existing.pptUrls||[]).concat(pptUrls);
+    docUrls = (existing.docUrls||[]).concat(docUrls);
   }
 
   const rec = {
@@ -2027,6 +1861,7 @@ async function saveRecord() {
     crime: getCrimeValue(), detail: getDetailValue(),
     operator: currentOperator,
     stationArea: val('station-area'),
+    province: val('f-province'),
     dutyOfficer: { name: val('do-name'), rank: val('do-rank'), phone: val('do-phone') },
     stationChief: { name: val('chief-name'), rank: val('chief-rank'), phone: val('chief-phone') },
     victimKnown,
@@ -2037,17 +1872,34 @@ async function saveRecord() {
            : perpKnown ? getPerpsKnown().map(p=>({...p,arrested:false})) : [],
     perp: (arrested==='yes' ? getPerpsArr()[0] : perpKnown ? getPerpsKnown()[0] : null) || null,
     weapon: weaponVal,
-    weaponType: weaponVal === 'yes' ? val('w-type') : '',
-    weaponDetail: weaponVal === 'yes' ? val('w-detail') : '',
-    imgUrls, pptUrls, docUrls,
-    createdAt: new Date().toISOString()
+    weapons: weaponVal === 'yes' ? getWeapons() : [],
+    weaponType: weaponVal === 'yes' ? (getWeapons()[0]?.type || '') : '',   // backward compat
+    weaponDetail: weaponVal === 'yes' ? (getWeapons()[0]?.detail || '') : '',
+    damages: damageVal === 'yes' ? getDamages() : [],
+    evidence: evidenceVal === 'yes' ? getEvidence() : [],
+    status: caseStatus,
+    imgUrls, summaryImgUrls, pptUrls, docUrls,
+    createdAt: existing.createdAt || new Date().toISOString()
   };
+  if (isEdit) {
+    rec.action = 'updateRecord';
+    rec.adminToken = sessionStorage.getItem('adminToken') || '';
+    rec.adminName  = sessionStorage.getItem('adminName')  || '';
+  }
 
-  await sendToGoogleSheets(rec);
+  const ok = await sendToGoogleSheets(rec);
   if (btnSave) { btnSave.disabled = false; btnSave.textContent = '💾 บันทึกข้อมูล'; }
-  toast('บันทึกสำเร็จ — ' + rec.ref, 'success');
+  if (!ok) { toast('❌ บันทึกไม่สำเร็จ — กรุณาลองใหม่ (ข้อมูลยังอยู่ในฟอร์ม)', 'error'); return; }
+
+  // auto-learn สภ. (เฉพาะตอนบันทึกใหม่ ไม่ใช่ตอนกำลังพิมพ์)
+  const stName = val('station-area');
+  if (stName && !stationCache.some(s => s.station === stName)) {
+    fetch(GS_URL, { method:'POST', headers:{'Content-Type':'text/plain;charset=UTF-8'},
+      body: JSON.stringify({ action:'addStation', province: val('f-province'), amphoe: val('f-amphoe'), station: stName }) }).catch(()=>{});
+  }
+
+  toast((isEdit ? 'แก้ไขสำเร็จ — ' : 'บันทึกสำเร็จ — ') + rec.ref, 'success');
   clearForm();
-  // โหลดข้อมูลใหม่จาก Google Sheet
   await loadRecordsFromGSheets();
 }
 
@@ -2146,23 +1998,37 @@ let perpsKnownList     = [{}];
 
 function personCardHTML(prefix, idx, p={}, labelColor='var(--blue-dark)', labelText='') {
   const isFirst = idx === 0;
+  // backward compat: ถ้ามีแต่ name เดิม (ไม่มี fname/lname) → ใส่ลงช่องชื่อ
+  let fn = p.fname||'', ln = p.lname||'';
+  if (!fn && !ln && p.name) fn = p.name;
+  const isVictim = prefix === 'v';
   return `<div class="sub-box" style="position:relative;margin-bottom:10px;">
     <div style="font-size:12px;font-weight:700;color:${labelColor};margin-bottom:8px;">
       ${labelText} คนที่ ${idx+1}
       ${!isFirst ? `<button type="button" onclick="removePerson('${prefix}',${idx})"
         style="float:right;background:none;border:none;color:var(--red);cursor:pointer;font-size:13px;line-height:1;">✕ ลบ</button>` : ''}
     </div>
-    <div class="form-grid">
-      <div class="field"><label>ชื่อ-นามสกุล</label><input type="text" id="${prefix}-name-${idx}" value="${p.name||''}" placeholder="ชื่อ นามสกุล"></div>
-      <div class="field"><label>อายุ (ปี)</label><input type="number" id="${prefix}-age-${idx}" value="${p.age||''}" placeholder="อายุ" min="0" max="120"></div>
+    <div class="form-grid cols3">
+      <div class="field"><label>คำนำหน้า</label><input type="text" id="${prefix}-prefix-${idx}" data-combo="list-prefix" autocomplete="off" value="${p.prefix||''}" placeholder="นาย/นาง/น.ส."></div>
+      <div class="field"><label>ชื่อ</label><input type="text" id="${prefix}-fname-${idx}" value="${fn}" placeholder="ชื่อ"></div>
+      <div class="field"><label>สกุล</label><input type="text" id="${prefix}-lname-${idx}" value="${ln}" placeholder="นามสกุล"></div>
     </div>
-    <div class="form-grid">
+    <div class="form-grid cols3">
+      <div class="field"><label>อายุ (ปี)</label><input type="number" id="${prefix}-age-${idx}" value="${p.age||''}" placeholder="อายุ" min="0" max="120"></div>
       <div class="field"><label>เบอร์โทรศัพท์</label><input type="tel" id="${prefix}-phone-${idx}" value="${p.phone||''}" placeholder="0XX-XXX-XXXX"></div>
       <div class="field"><label>เลขบัตรประชาชน</label><input type="text" id="${prefix}-id-${idx}" value="${p.id||''}" placeholder="X XXXX XXXXX XX X" maxlength="17"></div>
     </div>
-    <div class="form-grid col1">
-      <div class="field"><label>ที่อยู่</label><textarea id="${prefix}-addr-${idx}" rows="2" placeholder="บ้านเลขที่ ถนน ตำบล อำเภอ จังหวัด">${p.addr||''}</textarea></div>
+    <div style="font-size:11px;color:var(--text-hint);margin:2px 0 4px;">ที่อยู่</div>
+    <div class="form-grid cols3">
+      <div class="field"><label>จังหวัด</label><select id="${prefix}-prov-${idx}" onchange="personGeoProv('${prefix}',${idx})"><option value="">— จังหวัด —</option>${provinceOptions(p.addrProvince)}</select></div>
+      <div class="field"><label>อำเภอ</label><select id="${prefix}-amp-${idx}" onchange="personGeoAmp('${prefix}',${idx})"><option value="">— อำเภอ —</option></select></div>
+      <div class="field"><label>ตำบล</label><select id="${prefix}-tam-${idx}"><option value="">— ตำบล —</option></select></div>
     </div>
+    <div class="form-grid col1">
+      <div class="field"><label>บ้านเลขที่ / ถนน / หมู่</label><input type="text" id="${prefix}-addr-${idx}" value="${p.addr||''}" placeholder="เช่น 12 ม.3 ถนน..."></div>
+    </div>
+    ${isVictim ? `<label style="display:inline-flex;align-items:center;gap:8px;font-size:13px;color:var(--red);font-weight:600;margin-top:4px;cursor:pointer;">
+      <input type="checkbox" id="v-dead-${idx}" ${p.dead?'checked':''} style="width:16px;height:16px;"> เสียชีวิต</label>` : ''}
   </div>`;
 }
 
@@ -2170,23 +2036,35 @@ function renderList(listId, arr, prefix, labelColor, labelText) {
   const el = document.getElementById(listId);
   if (!el) return;
   el.innerHTML = arr.map((p,i) => personCardHTML(prefix, i, p, labelColor, labelText)).join('');
+  hydratePersonGeo(prefix, arr);
 }
 
 function renderVictims()  { renderList('victims-list',       victimsList,       'v',  'var(--blue-dark)', 'ผู้เสียหาย'); }
 function renderPerpsArr() { renderList('perps-arrested-list', perpsArrestedList, 'pa', 'var(--blue-dark)', 'ผู้ก่อเหตุ (จับกุมได้)'); }
 function renderPerpsKnw() { renderList('perps-known-list',    perpsKnownList,    'pk', 'var(--red)',        'ผู้ก่อเหตุ'); }
 
+// อ่าน 1 คนจาก DOM (prefix/fname/lname/.../dead)
+function readPerson(prefix, i) {
+  const obj = {
+    prefix: document.getElementById(`${prefix}-prefix-${i}`)?.value?.trim()||'',
+    fname:  document.getElementById(`${prefix}-fname-${i}`)?.value?.trim()||'',
+    lname:  document.getElementById(`${prefix}-lname-${i}`)?.value?.trim()||'',
+    age:    document.getElementById(`${prefix}-age-${i}`)?.value||'',
+    phone:  document.getElementById(`${prefix}-phone-${i}`)?.value?.trim()||'',
+    id:     document.getElementById(`${prefix}-id-${i}`)?.value?.trim()||'',
+    addr:        document.getElementById(`${prefix}-addr-${i}`)?.value?.trim()||'',
+    addrProvince:document.getElementById(`${prefix}-prov-${i}`)?.value||'',
+    addrAmphoe:  document.getElementById(`${prefix}-amp-${i}`)?.value||'',
+    addrTambon:  document.getElementById(`${prefix}-tam-${i}`)?.value||''
+  };
+  const deadEl = document.getElementById(`${prefix}-dead-${i}`);
+  if (deadEl) obj.dead = deadEl.checked;
+  return obj;
+}
+
 // บันทึกค่าจาก DOM กลับเข้า array ก่อน re-render
 function saveCurrentToArray(prefix, arr) {
-  arr.forEach((_, i) => {
-    arr[i] = {
-      name:  document.getElementById(`${prefix}-name-${i}`)?.value?.trim()||'',
-      age:   document.getElementById(`${prefix}-age-${i}`)?.value||'',
-      phone: document.getElementById(`${prefix}-phone-${i}`)?.value?.trim()||'',
-      id:    document.getElementById(`${prefix}-id-${i}`)?.value?.trim()||'',
-      addr:  document.getElementById(`${prefix}-addr-${i}`)?.value?.trim()||''
-    };
-  });
+  arr.forEach((_, i) => { arr[i] = readPerson(prefix, i); });
 }
 
 function appendCard(containerId, prefix, idx, labelColor, labelText) {
@@ -2237,24 +2115,14 @@ function removePerson(prefix, idx) {
 }
 
 function collectPersons(prefix, arr) {
-  return arr.map((_,i) => ({
-    name:  document.getElementById(`${prefix}-name-${i}`)?.value?.trim()||'',
-    age:   document.getElementById(`${prefix}-age-${i}`)?.value||'',
-    phone: document.getElementById(`${prefix}-phone-${i}`)?.value?.trim()||'',
-    id:    document.getElementById(`${prefix}-id-${i}`)?.value?.trim()||'',
-    addr:  document.getElementById(`${prefix}-addr-${i}`)?.value?.trim()||''
-  })).filter(p => p.name);
+  return arr.map((_,i) => readPerson(prefix, i)).filter(p => p.fname || p.lname);
 }
 
 function collectFromDOM(prefix, count) {
   const result = [];
   for (let i = 0; i < count; i++) {
-    const name = document.getElementById(`${prefix}-name-${i}`)?.value?.trim()||'';
-    const age  = document.getElementById(`${prefix}-age-${i}`)?.value||'';
-    const phone= document.getElementById(`${prefix}-phone-${i}`)?.value?.trim()||'';
-    const id   = document.getElementById(`${prefix}-id-${i}`)?.value?.trim()||'';
-    const addr = document.getElementById(`${prefix}-addr-${i}`)?.value?.trim()||'';
-    if (name) result.push({ name, age, phone, id, addr });
+    const p = readPerson(prefix, i);
+    if (p.fname || p.lname) result.push(p);
   }
   return result;
 }
@@ -2263,10 +2131,181 @@ function getVictims()    { return collectFromDOM('v',  victimsList.length); }
 function getPerpsArr()   { return collectFromDOM('pa', perpsArrestedList.length); }
 function getPerpsKnown() { return collectFromDOM('pk', perpsKnownList.length); }
 
+// ── ทรัพย์สินที่เสียหาย (หลายรายการ) ──
+let damagesList = [{}];
+
+function damageCardHTML(idx, d={}) {
+  const isFirst = idx === 0;
+  return `<div class="sub-box" style="position:relative;margin-bottom:10px;">
+    <div style="font-size:12px;font-weight:700;color:var(--blue-dark);margin-bottom:8px;">
+      รายการที่ ${idx+1}
+      ${!isFirst ? `<button type="button" onclick="removeDamage(${idx})" style="float:right;background:none;border:none;color:var(--red);cursor:pointer;font-size:13px;line-height:1;">✕ ลบ</button>` : ''}
+    </div>
+    <div class="form-grid col1">
+      <div class="field"><label>รายละเอียด</label><input type="text" id="dmg-desc-${idx}" value="${d.desc||''}" placeholder="เช่น รถจักรยานยนต์ Honda Wave"></div>
+    </div>
+    <div class="form-grid cols3">
+      <div class="field"><label>จำนวน</label><input type="text" id="dmg-qty-${idx}" value="${d.qty||''}" placeholder="จำนวน"></div>
+      <div class="field"><label>หน่วย</label><input type="text" id="dmg-unit-${idx}" data-combo="list-unit" autocomplete="off" value="${d.unit||''}" placeholder="คัน/เครื่อง/ชิ้น"></div>
+      <div class="field"><label>มูลค่า (บาท)</label><input type="text" id="dmg-value-${idx}" value="${d.value||''}" placeholder="มูลค่า"></div>
+    </div>
+  </div>`;
+}
+
+function renderDamages() {
+  const el = document.getElementById('damages-list');
+  if (el) el.innerHTML = damagesList.map((d,i)=>damageCardHTML(i,d)).join('');
+}
+
+function readDamage(i) {
+  return {
+    desc:  document.getElementById(`dmg-desc-${i}`)?.value?.trim()||'',
+    qty:   document.getElementById(`dmg-qty-${i}`)?.value?.trim()||'',
+    unit:  document.getElementById(`dmg-unit-${i}`)?.value?.trim()||'',
+    value: document.getElementById(`dmg-value-${i}`)?.value?.trim()||''
+  };
+}
+
+function addDamage() {
+  damagesList = damagesList.map((_,i)=>readDamage(i));
+  damagesList.push({});
+  renderDamages();
+}
+
+function removeDamage(idx) {
+  damagesList = damagesList.map((_,i)=>readDamage(i));
+  damagesList.splice(idx,1);
+  if (!damagesList.length) damagesList=[{}];
+  renderDamages();
+}
+
+function getDamages() {
+  const out = [];
+  for (let i=0;i<damagesList.length;i++) {
+    const d = readDamage(i);
+    if (d.desc || d.qty || d.value) out.push(d);
+  }
+  return out;
+}
+
+// ── ของกลาง (หลายรายการ — โครงเดียวกับทรัพย์สิน เก็บคนละคอลัมน์) ──
+let evidenceList = [{}];
+
+function evidenceCardHTML(idx, d={}) {
+  const isFirst = idx === 0;
+  return `<div class="sub-box" style="position:relative;margin-bottom:10px;">
+    <div style="font-size:12px;font-weight:700;color:var(--blue-dark);margin-bottom:8px;">
+      รายการที่ ${idx+1}
+      ${!isFirst ? `<button type="button" onclick="removeEvidence(${idx})" style="float:right;background:none;border:none;color:var(--red);cursor:pointer;font-size:13px;line-height:1;">✕ ลบ</button>` : ''}
+    </div>
+    <div class="form-grid col1">
+      <div class="field"><label>รายละเอียด</label><input type="text" id="ev-desc-${idx}" value="${d.desc||''}" placeholder="เช่น อาวุธปืน / ยาเสพติด / โทรศัพท์"></div>
+    </div>
+    <div class="form-grid cols3">
+      <div class="field"><label>จำนวน</label><input type="text" id="ev-qty-${idx}" value="${d.qty||''}" placeholder="จำนวน"></div>
+      <div class="field"><label>หน่วย</label><input type="text" id="ev-unit-${idx}" data-combo="list-unit" autocomplete="off" value="${d.unit||''}" placeholder="กระบอก/เม็ด/ชิ้น"></div>
+      <div class="field"><label>มูลค่า (บาท)</label><input type="text" id="ev-value-${idx}" value="${d.value||''}" placeholder="มูลค่า (ถ้ามี)"></div>
+    </div>
+  </div>`;
+}
+
+function renderEvidence() {
+  const el = document.getElementById('evidence-list');
+  if (el) el.innerHTML = evidenceList.map((d,i)=>evidenceCardHTML(i,d)).join('');
+}
+
+function readEvidence(i) {
+  return {
+    desc:  document.getElementById(`ev-desc-${i}`)?.value?.trim()||'',
+    qty:   document.getElementById(`ev-qty-${i}`)?.value?.trim()||'',
+    unit:  document.getElementById(`ev-unit-${i}`)?.value?.trim()||'',
+    value: document.getElementById(`ev-value-${i}`)?.value?.trim()||''
+  };
+}
+
+function addEvidence() {
+  evidenceList = evidenceList.map((_,i)=>readEvidence(i));
+  evidenceList.push({});
+  renderEvidence();
+}
+
+function removeEvidence(idx) {
+  evidenceList = evidenceList.map((_,i)=>readEvidence(i));
+  evidenceList.splice(idx,1);
+  if (!evidenceList.length) evidenceList=[{}];
+  renderEvidence();
+}
+
+function getEvidence() {
+  const out = [];
+  for (let i=0;i<evidenceList.length;i++) {
+    const d = readEvidence(i);
+    if (d.desc || d.qty || d.value) out.push(d);
+  }
+  return out;
+}
+
+// ── อาวุธ (หลายรายการ + จำนวน/หน่วย) ──
+let weaponsList = [{}];
+
+function weaponCardHTML(idx, w={}) {
+  const isFirst = idx === 0;
+  return `<div class="sub-box" style="position:relative;margin-bottom:10px;">
+    <div style="font-size:12px;font-weight:700;color:var(--red);margin-bottom:8px;">
+      อาวุธชิ้นที่ ${idx+1}
+      ${!isFirst ? `<button type="button" onclick="removeWeapon(${idx})" style="float:right;background:none;border:none;color:var(--red);cursor:pointer;font-size:13px;line-height:1;">✕ ลบ</button>` : ''}
+    </div>
+    <div class="form-grid">
+      <div class="field"><label>ชนิดอาวุธ</label><input type="text" id="w-type-${idx}" value="${w.type||''}" placeholder="เช่น มีด ปืน ของแข็ง"></div>
+      <div class="field"><label>รายละเอียดเพิ่มเติม</label><input type="text" id="w-detail-${idx}" value="${w.detail||''}" placeholder="ลักษณะ สี ขนาด ฯลฯ"></div>
+    </div>
+    <div class="form-grid">
+      <div class="field"><label>จำนวน</label><input type="text" id="w-qty-${idx}" value="${w.qty||''}" placeholder="จำนวน"></div>
+      <div class="field"><label>หน่วย</label><input type="text" id="w-unit-${idx}" data-combo="list-unit" autocomplete="off" value="${w.unit||''}" placeholder="กระบอก/เล่ม/อัน"></div>
+    </div>
+  </div>`;
+}
+
+function renderWeapons() {
+  const el = document.getElementById('weapons-list');
+  if (el) el.innerHTML = weaponsList.map((w,i)=>weaponCardHTML(i,w)).join('');
+}
+
+function readWeapon(i) {
+  return {
+    type:   document.getElementById(`w-type-${i}`)?.value?.trim()||'',
+    detail: document.getElementById(`w-detail-${i}`)?.value?.trim()||'',
+    qty:    document.getElementById(`w-qty-${i}`)?.value?.trim()||'',
+    unit:   document.getElementById(`w-unit-${i}`)?.value?.trim()||''
+  };
+}
+
+function addWeapon() {
+  weaponsList = weaponsList.map((_,i)=>readWeapon(i));
+  weaponsList.push({});
+  renderWeapons();
+}
+
+function removeWeapon(idx) {
+  weaponsList = weaponsList.map((_,i)=>readWeapon(i));
+  weaponsList.splice(idx,1);
+  if (!weaponsList.length) weaponsList=[{}];
+  renderWeapons();
+}
+
+function getWeapons() {
+  const out = [];
+  for (let i=0;i<weaponsList.length;i++) {
+    const w = readWeapon(i);
+    if (w.type || w.detail || w.qty) out.push(w);
+  }
+  return out;
+}
+
 // init lists on first render
 function initPersonLists() {
-  victimsList=[{}]; perpsArrestedList=[{}]; perpsKnownList=[{}];
-  renderVictims(); renderPerpsArr(); renderPerpsKnw();
+  victimsList=[{}]; perpsArrestedList=[{}]; perpsKnownList=[{}]; damagesList=[{}]; evidenceList=[{}]; weaponsList=[{}];
+  renderVictims(); renderPerpsArr(); renderPerpsKnw(); renderDamages(); renderEvidence(); renderWeapons();
 }
 
 function clearForm() {
@@ -2275,23 +2314,29 @@ function clearForm() {
   document.getElementById('f-detail-select').value = '';
   document.getElementById('f-detail-wrap').style.display = 'none';
   // reset location fields
-  ['f-province','f-amphoe','f-tambon','f-street'].forEach(id => { if(document.getElementById(id)) document.getElementById(id).value = ''; });
-  document.getElementById('list-amphoe').innerHTML = '';
-  document.getElementById('list-tambon').innerHTML = '';
-  ['f-detail','w-type','w-detail',
+  document.getElementById('f-street').value = '';
+  document.getElementById('f-province').value = '';
+  document.getElementById('f-amphoe').innerHTML = '<option value="">— เลือกอำเภอ —</option>';
+  document.getElementById('f-tambon').innerHTML = '<option value="">— เลือกตำบล —</option>';
+  ['f-detail',
    'do-name','do-rank','do-phone',
    'station-area','chief-name','chief-rank','chief-phone'].forEach(id => { if(document.getElementById(id)) document.getElementById(id).value = ''; });
   initPersonLists();
   document.getElementById('officer-block').style.display = 'none';
-  // reset radios (no default — user must pick)
-  document.querySelectorAll('input[name="victim-known"]').forEach(r => r.checked = false);
-  show('victim-sub', false);
+  // reset radios — ค่า default: ยังไม่จับ / ไม่ทราบ / ไม่มี / ดำเนินการ
+  document.getElementById('vk-no').checked = true; show('victim-sub', false);
   document.getElementById('arr-no').checked = true; onArrested('no');
-  document.querySelectorAll('input[name="perp-known"]').forEach(r => r.checked = false);
-  show('perp-sub', false);
+  document.getElementById('pk-no').checked = true; show('perp-sub', false);
+  document.getElementById('ev-no').checked = true; show('evidence-sub', false);
+  document.getElementById('dmg-no').checked = true; show('damage-sub', false);
   document.getElementById('w-no').checked = true; showWeapon('no');
+  document.getElementById('cs-inprogress').checked = true;
+  // reset ไฟล์แนบ
+  if (typeof fileStore !== 'undefined') { fileStore.img=[]; fileStore.summary=[]; fileStore.ppt=[]; fileStore.doc=[]; if (typeof renderImgPreviews==='function'){ renderImgPreviews(); renderSummaryPreviews(); renderFileList('ppt'); renderFileList('doc'); } }
+  editingRef = null;
   init();
 }
+let editingRef = null;
 
 const typeLabel = { urgent:'เหตุอุฉกรรณ์', interesting:'เหตุน่าสนใจ', express:'รายงานด่วน',
                     'อุฉกรรณ์':'เหตุอุฉกรรณ์', 'น่าสนใจ':'เหตุน่าสนใจ', 'เร่งด่วน':'รายงานด่วน' };
@@ -2316,11 +2361,13 @@ function renderDashboard() {
   const wYes = records.filter(r=>r.weapon==='yes').length;
   const wNo  = records.filter(r=>r.weapon==='no').length;
   const wUnk = records.filter(r=>r.weapon==='unknown').length;
+  const done = records.filter(r=>r.status==='done').length;
+  const inprogress = total - done;
 
   document.getElementById('metric-row').innerHTML = [
     ['รวมทั้งหมด', total, '', '#1a1a18'],
-    ['เหตุอุฉกรรณ์', urgent, '', '#A32D2D'],
-    ['เหตุน่าสนใจ', interesting, '', '#854F0B'],
+    ['ดำเนินการอยู่', inprogress, 'คดี', '#854F0B'],
+    ['ปิดแล้ว', done, 'คดี', '#3B6D11'],
     ['จับกุมได้', arrested, 'ราย', '#185FA5']
   ].map(([lbl,val,sub,col]) =>
     `<div class="metric-card"><div class="m-label">${lbl}</div><div class="m-value" style="color:${col}">${val}</div><div class="m-sub">${sub||'รายการ'}</div></div>`
@@ -2330,7 +2377,10 @@ function renderDashboard() {
   document.getElementById('chart-type').innerHTML =
     bar('เหตุอุฉกรรณ์', urgent, maxT, '#E24B4A') +
     bar('เหตุน่าสนใจ', interesting, maxT, '#EF9F27') +
-    bar('รายงานด่วน', express, maxT, '#639922');
+    bar('รายงานด่วน', express, maxT, '#639922') +
+    '<div style="height:8px"></div>' +
+    bar('ดำเนินการอยู่', inprogress, Math.max(inprogress,done,1), '#EF9F27') +
+    bar('ปิดแล้ว (เสร็จสิ้น)', done, Math.max(inprogress,done,1), '#639922');
 
   const maxW = Math.max(wYes, wNo, wUnk, arrested, 1);
   document.getElementById('chart-weapon').innerHTML =
@@ -2527,6 +2577,20 @@ function renderTable() {
 }
 
 function df(v) { return v || '<span style="color:var(--text-hint)">—</span>'; }
+function fullPersonName(p) {
+  if (!p) return '';
+  const n = [p.prefix, p.fname, p.lname].filter(Boolean).join(' ');
+  return n || p.name || '';
+}
+function fullPersonAddr(p) {
+  if (!p) return '';
+  const parts = [];
+  if (p.addr)         parts.push(p.addr);
+  if (p.addrTambon)   parts.push('ต.' + p.addrTambon);
+  if (p.addrAmphoe)   parts.push('อ.' + p.addrAmphoe);
+  if (p.addrProvince) parts.push('จ.' + p.addrProvince);
+  return parts.length ? parts.join(' ') : (p.addr || '');
+}
 
 // แปลงวันที่จาก Google Sheets (อาจเป็น "2026-05-21T17:00:00.000Z" หรือ "2026-05-21") → "21/05/2026"
 function fmtDate(v) {
@@ -2568,17 +2632,17 @@ function getDriveFileId(url) {
 // สร้าง HTML สรุปไฟล์แนบสำหรับ detail modal
 function buildDetailFileHtml(r) {
   const imgs = (r.imgUrls||[]).map(parseFileEntry).filter(Boolean);
+  const sums = (r.summaryImgUrls||[]).map(parseFileEntry).filter(Boolean);
   const ppts = (r.pptUrls||[]).map(parseFileEntry).filter(Boolean);
   const docs = (r.docUrls||[]).map(parseFileEntry).filter(Boolean);
-  const total = imgs.length + ppts.length + docs.length;
+  const total = imgs.length + sums.length + ppts.length + docs.length;
   if (total === 0) return '<span style="color:var(--text-hint);font-size:13px;">ไม่มีไฟล์แนบ</span>';
 
-  // รูปภาพ: แสดง thumbnail grid คลิกเปิดเต็มใน Drive
-  const imgGrid = imgs.length === 0 ? '' : `
+  const makeImgGrid = (arr, icon, label) => arr.length === 0 ? '' : `
     <div style="margin-bottom:14px;">
-      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--text-hint);margin-bottom:8px;">🖼️ รูปภาพ (${imgs.length})</div>
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--text-hint);margin-bottom:8px;">${icon} ${label} (${arr.length})</div>
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px;">
-        ${imgs.map((f,i) => {
+        ${arr.map((f,i) => {
           const fid = getDriveFileId(f.url);
           const thumb = fid ? `https://drive.google.com/thumbnail?id=${fid}&sz=w300` : '';
           return `<a href="${f.url}" target="_blank" style="display:block;border-radius:6px;overflow:hidden;border:1px solid var(--gray-border);text-decoration:none;background:var(--gray-light);" title="${f.name||'รูป '+(i+1)}">
@@ -2591,6 +2655,8 @@ function buildDetailFileHtml(r) {
         }).join('')}
       </div>
     </div>`;
+  const sumGrid = makeImgGrid(sums, '📈', 'รูปสรุปรายงาน');
+  const imgGrid = makeImgGrid(imgs, '🖼️', 'รูปภาพ');
 
   // PPT และ เอกสาร: แสดงเป็น row คลิกได้
   const makeFileRows = (arr, icon, label) => arr.length === 0 ? '' : `
@@ -2614,12 +2680,14 @@ function buildDetailFileHtml(r) {
       <div style="display:flex;align-items:center;justify-content:space-between;background:var(--surface);border-radius:var(--radius-sm);border:1px solid var(--gray-border);padding:8px 12px;margin-bottom:12px;">
         <span style="font-size:13px;color:var(--text-muted);">รวมทั้งหมด</span>
         <div style="display:flex;align-items:center;gap:12px;">
+          ${sums.length>0?`<span style="font-size:12px;color:var(--green);">📈 ${sums.length}</span>`:''}
           ${imgs.length>0?`<span style="font-size:12px;color:var(--green);">🖼️ ${imgs.length}</span>`:''}
           ${ppts.length>0?`<span style="font-size:12px;color:var(--amber);">📊 ${ppts.length}</span>`:''}
           ${docs.length>0?`<span style="font-size:12px;color:var(--text-muted);">📄 ${docs.length}</span>`:''}
           <span style="font-size:18px;font-weight:700;color:var(--blue);">${total}</span>
         </div>
       </div>
+      ${sumGrid}
       ${imgGrid}
       ${makeFileRows(ppts,'📊','Powerpoint')}
       ${makeFileRows(docs,'📄','เอกสาร')}
@@ -2705,28 +2773,55 @@ function showDetail(idxOrRef) {
           <div class="detail-field"><label>หัวหน้าสถานี</label><span>${df((r.stationChief?.rank||'')+' '+(r.stationChief?.name||''))}</span></div>
         </div>
       </div>
-      ${r.victimKnown && r.victim ? `
-      <div class="detail-section">
-        <div class="detail-section-title">ผู้เสียหาย</div>
-        <div class="detail-grid col3">
-          <div class="detail-field"><label>ชื่อ</label><span>${df(r.victim?.name)}</span></div>
-          <div class="detail-field"><label>อายุ</label><span>${df(r.victim?.age)}</span></div>
-          <div class="detail-field"><label>โทร</label><span>${df(r.victim?.phone)}</span></div>
-          <div class="detail-field"><label>บัตรประชาชน</label><span>${df(r.victim?.id)}</span></div>
-          <div class="detail-field full"><label>ที่อยู่</label><span>${df(r.victim?.addr)}</span></div>
-        </div>
-      </div>` : ''}
+      ${(() => {
+        const vs = (r.victims && r.victims.length) ? r.victims : (r.victim ? [r.victim] : []);
+        if (!r.victimKnown || !vs.length) return '';
+        const hasDead = vs.some(v=>v.dead), hasAlive = vs.some(v=>!v.dead);
+        const title = hasDead && !hasAlive ? 'ผู้เสียชีวิต' : (!hasDead ? 'ผู้เสียหาย' : 'ผู้เสียหาย / ผู้เสียชีวิต');
+        return `<div class="detail-section"><div class="detail-section-title">${title}</div>` + vs.map((v,i)=>`
+          <div class="detail-grid col3" style="${i>0?'margin-top:10px;padding-top:10px;border-top:1px dashed var(--gray-border);':''}">
+            <div class="detail-field full"><label>คนที่ ${i+1}</label><span>${df(fullPersonName(v))}${v.dead?' <b style="color:var(--red)">(เสียชีวิต)</b>':''}</span></div>
+            <div class="detail-field"><label>อายุ</label><span>${df(v.age)}</span></div>
+            <div class="detail-field"><label>โทร</label><span>${df(v.phone)}</span></div>
+            <div class="detail-field"><label>บัตรประชาชน</label><span>${df(v.id)}</span></div>
+            <div class="detail-field full"><label>ที่อยู่</label><span>${df(fullPersonAddr(v))}</span></div>
+          </div>`).join('') + `</div>`;
+      })()}
+      ${(() => {
+        const dmg = r.damages || [];
+        if (!dmg.length) return '';
+        return `<div class="detail-section"><div class="detail-section-title">ทรัพย์สินที่เสียหาย</div>` +
+          dmg.map((d,i)=>`<div style="font-size:14px;padding:3px 0;">${i+1}. ${d.desc||''}${d.qty?' จำนวน '+d.qty:''}${d.unit?' '+d.unit:''}${d.value?' มูลค่า '+d.value+' บาท':''}</div>`).join('') + `</div>`;
+      })()}
+      ${(() => {
+        const ev = r.evidence || [];
+        if (!ev.length) return '';
+        return `<div class="detail-section"><div class="detail-section-title">ของกลาง</div>` +
+          ev.map((d,i)=>`<div style="font-size:14px;padding:3px 0;">${i+1}. ${d.desc||''}${d.qty?' จำนวน '+d.qty:''}${d.unit?' '+d.unit:''}${d.value?' มูลค่า '+d.value+' บาท':''}</div>`).join('') + `</div>`;
+      })()}
       <div class="detail-section">
         <div class="detail-section-title">การจับกุม & ผู้ก่อเหตุ</div>
         <div class="detail-grid">
           <div class="detail-field"><label>สถานะการจับกุม</label><span>${arrested}</span></div>
-          <div class="detail-field"><label>อาวุธ</label><span>${wpLabel[r.weapon]||'—'} ${r.weaponType ? '('+r.weaponType+')' : ''}</span></div>
-          ${r.perp ? `
-          <div class="detail-field"><label>ชื่อผู้ก่อเหตุ</label><span>${df(r.perp?.name)}</span></div>
-          <div class="detail-field"><label>อายุ</label><span>${df(r.perp?.age)}</span></div>
-          <div class="detail-field"><label>บัตรประชาชน</label><span>${df(r.perp?.id)}</span></div>
-          <div class="detail-field full"><label>ที่อยู่</label><span>${df(r.perp?.addr)}</span></div>` : ''}
+          <div class="detail-field"><label>อาวุธ</label><span>${wpLabel[r.weapon]||'—'}</span></div>
         </div>
+        ${(() => {
+          const ws = (r.weapons && r.weapons.length) ? r.weapons
+                   : ((r.weaponType || r.weaponDetail) ? [{type:r.weaponType, detail:r.weaponDetail}] : []);
+          if (!ws.length) return '';
+          return `<div style="margin-top:8px;">` + ws.map((w,i)=>`<div style="font-size:14px;padding:2px 0;">${i+1}. ${[w.type,w.detail].filter(Boolean).join(' — ')}${w.qty?' จำนวน '+w.qty:''}${w.unit?' '+w.unit:''}</div>`).join('') + `</div>`;
+        })()}
+        ${(() => {
+          const ps = (r.perps && r.perps.length) ? r.perps : (r.perp ? [r.perp] : []);
+          if (!ps.length) return '';
+          return ps.map((p,i)=>`
+          <div class="detail-grid col3" style="margin-top:10px;${i>0?'padding-top:10px;border-top:1px dashed var(--gray-border);':''}">
+            <div class="detail-field full"><label>ผู้ก่อเหตุ คนที่ ${i+1}</label><span>${df(fullPersonName(p))}</span></div>
+            <div class="detail-field"><label>อายุ</label><span>${df(p.age)}</span></div>
+            <div class="detail-field"><label>บัตรประชาชน</label><span>${df(p.id)}</span></div>
+            <div class="detail-field full"><label>ที่อยู่</label><span>${df(fullPersonAddr(p))}</span></div>
+          </div>`).join('');
+        })()}
       </div>
       <div class="detail-section">
         <div class="detail-section-title">ไฟล์แนบ</div>
@@ -2836,12 +2931,23 @@ function prefillEditForm(r) {
   // ไปที่หน้าบันทึก
   document.querySelectorAll('.nav-item').forEach((n,i) => { if(i===0) { n.classList.add('active'); gotoPage('form', n); } else n.classList.remove('active'); });
   // กรอกข้อมูล
-  setTimeout(() => {
+  setTimeout(async () => {
+    editingRef = r.ref;
     if(document.getElementById('f-ref')) document.getElementById('f-ref').value = r.ref;
     if(document.getElementById('ref-display')) document.getElementById('ref-display').textContent = r.ref;
     if(document.getElementById('f-date')) document.getElementById('f-date').value = r.date||'';
     if(document.getElementById('f-time')) document.getElementById('f-time').value = r.time||'';
-    if(document.getElementById('f-location')) document.getElementById('f-location').value = r.location||'';
+    // แยก location กลับเป็น จังหวัด/อำเภอ/ตำบล/สถานที่
+    if (r.location) {
+      const loc = String(r.location);
+      const pm = loc.match(/จ\.(\S+)/), am = loc.match(/อ\.(\S+)/), tm = loc.match(/ต\.(\S+)/);
+      const prov = r.province || (pm ? pm[1] : ''), amph = am ? am[1] : '', tamb = tm ? tm[1] : '';
+      const street = loc.replace(/\s*ต\.\S+/,'').replace(/\s*อ\.\S+/,'').replace(/\s*จ\.\S+/,'').trim();
+      if (prov) { document.getElementById('f-province').value = prov; await onProvinceInput(prov); }
+      if (amph) { document.getElementById('f-amphoe').value = amph; await onAmphoeInput(amph); }
+      if (tamb) document.getElementById('f-tambon').value = tamb;
+      if (street) document.getElementById('f-street').value = street;
+    }
     if(document.getElementById('f-detail-select')) {
       // โหลด crime (selectbox) และ detail (textbox) แยกกัน
       const crimeVal = r.crime || '';
@@ -2880,7 +2986,37 @@ function prefillEditForm(r) {
       const pArr = r.perps && r.perps.length ? r.perps : (r.perp ? [r.perp] : [{}]);
       perpsKnownList = pArr.length ? pArr : [{}]; renderPerpsKnw();
     }
-    toast('โหลดข้อมูลสำหรับแก้ไข: ' + r.ref, 'success');
+    // โหลดทรัพย์สิน
+    if (r.damages && r.damages.length) {
+      document.getElementById('dmg-yes').checked = true; show('damage-sub', true);
+      damagesList = r.damages.slice(); renderDamages();
+    } else {
+      document.getElementById('dmg-no').checked = true; show('damage-sub', false);
+    }
+    // โหลดของกลาง
+    if (r.evidence && r.evidence.length) {
+      document.getElementById('ev-yes').checked = true; show('evidence-sub', true);
+      evidenceList = r.evidence.slice(); renderEvidence();
+    } else {
+      document.getElementById('ev-no').checked = true; show('evidence-sub', false);
+    }
+    // โหลดอาวุธ
+    if (r.weapon === 'yes') {
+      document.getElementById('w-yes').checked = true; showWeapon('yes');
+      const wArr = (r.weapons && r.weapons.length) ? r.weapons
+                 : ((r.weaponType || r.weaponDetail) ? [{type:r.weaponType||'', detail:r.weaponDetail||''}] : [{}]);
+      weaponsList = wArr.length ? wArr : [{}]; renderWeapons();
+    } else if (r.weapon === 'unknown') {
+      document.getElementById('w-unk').checked = true; showWeapon('unknown');
+    } else {
+      document.getElementById('w-no').checked = true; showWeapon('no');
+    }
+    // โหลดสถานะคดี
+    const stId = r.status === 'done' ? 'cs-done' : 'cs-inprogress';
+    if (document.getElementById(stId)) document.getElementById(stId).checked = true;
+    // แจ้งไฟล์แนบเดิม (ถูกเก็บไว้ ระบบจะ merge กับไฟล์ที่เพิ่มใหม่)
+    const oldFiles = (r.imgUrls||[]).length + (r.summaryImgUrls||[]).length + (r.pptUrls||[]).length + (r.docUrls||[]).length;
+    toast('โหลดข้อมูลแก้ไข: ' + r.ref + (oldFiles ? ` (มีไฟล์เดิม ${oldFiles} ไฟล์ — เพิ่มใหม่ได้)` : ''), 'success');
     // เลื่อนขึ้นบน
     window.scrollTo(0,0);
   }, 300);
@@ -2888,10 +3024,71 @@ function prefillEditForm(r) {
 
 init();
 initPersonLists();
+loadProvinces();
+loadStations();
+
+// ── Custom combobox (input[data-combo]) — โชว์ตัวเลือกครบทุกครั้ง + พิมพ์กรองได้ ──
+let _comboInput = null;
+function comboPopEl() {
+  let p = document.getElementById('combo-pop');
+  if (!p) { p = document.createElement('div'); p.id = 'combo-pop'; p.className = 'combo-pop'; p.style.display = 'none'; document.body.appendChild(p); }
+  return p;
+}
+function comboOptions(input) {
+  const dl = document.getElementById(input.getAttribute('data-combo'));
+  return dl ? Array.from(dl.querySelectorAll('option')).map(o => o.value) : [];
+}
+function comboShow(input, filter) {
+  const pop = comboPopEl();
+  let opts = comboOptions(input);
+  if (filter) { const f = filter.toLowerCase(); opts = opts.filter(o => o.toLowerCase().includes(f)); }
+  if (!opts.length) { pop.style.display = 'none'; return; }
+  pop.innerHTML = opts.map(o => `<div class="ci" data-v="${String(o).replace(/"/g,'&quot;')}">${o}</div>`).join('');
+  const r = input.getBoundingClientRect();
+  pop.style.left = r.left + 'px';
+  pop.style.top = (r.bottom + 2) + 'px';
+  pop.style.width = r.width + 'px';
+  pop.style.display = 'block';
+  _comboInput = input;
+}
+function comboHide() { const p = document.getElementById('combo-pop'); if (p) p.style.display = 'none'; _comboInput = null; }
+
+document.addEventListener('focusin', function(e){
+  const el = e.target;
+  if (el && el.matches && el.matches('input[data-combo]')) comboShow(el, '');  // โชว์ครบทุกตัว
+});
+document.addEventListener('input', function(e){
+  const el = e.target;
+  if (el && el.matches && el.matches('input[data-combo]')) comboShow(el, el.value);  // พิมพ์กรอง
+});
+document.addEventListener('mousedown', function(e){
+  const pop = document.getElementById('combo-pop');
+  if (!pop || pop.style.display !== 'block') return;
+  const item = e.target.closest && e.target.closest('#combo-pop .ci');
+  if (item && _comboInput) {
+    e.preventDefault();  // กัน blur ก่อนตั้งค่า
+    const inp = _comboInput;
+    inp.value = item.getAttribute('data-v');
+    inp.dispatchEvent(new Event('input', { bubbles: true }));
+    inp.dispatchEvent(new Event('change', { bubbles: true }));
+    comboHide();
+  } else if (!(e.target.matches && e.target.matches('input[data-combo]'))) {
+    comboHide();
+  }
+});
+document.addEventListener('focusout', function(e){
+  const el = e.target;
+  if (el && el.matches && el.matches('input[data-combo]')) setTimeout(comboHide, 120);
+});
+window.addEventListener('scroll', function(e){
+  if (e.target && e.target.closest && e.target.closest('#combo-pop')) return; // เลื่อนในกล่องตัวเลือกได้
+  comboHide();
+}, true);
 
 /* ── File Upload Logic ── */
-const fileStore = { img: [], ppt: [], doc: [] };
-const IMG_MAX = 7;
+const fileStore = { img: [], summary: [], ppt: [], doc: [] };
+const IMG_MAX = 8;
+const SUMMARY_MAX = 2;
 
 function fmtSize(b) {
   if (b < 1024) return b + ' B';
@@ -2901,20 +3098,19 @@ function fmtSize(b) {
 
 function handleFiles(input, type) {
   const newFiles = Array.from(input.files);
-  if (type === 'img') addImages(newFiles);
+  if (type === 'img') addImages(newFiles, 'img');
+  else if (type === 'summary') addImages(newFiles, 'summary');
   else if (type === 'ppt') addFileList(newFiles, 'ppt', ['application/vnd.ms-powerpoint','application/vnd.openxmlformats-officedocument.presentationml.presentation'], ['.ppt','.pptx']);
   else addFileList(newFiles, 'doc', ['application/msword','application/vnd.openxmlformats-officedocument.wordprocessingml.document','application/pdf'], ['.doc','.docx','.pdf']);
   input.value = '';
 }
 
-function addImages(newFiles) {
+function addImages(newFiles, key='img') {
   const valid = newFiles.filter(f => f.type.startsWith('image/'));
-  const remaining = IMG_MAX - fileStore.img.length;
-  const toAdd = valid.slice(0, remaining);
-  fileStore.img.push(...toAdd);
-  renderImgPreviews();
-  const warn = document.getElementById('img-warn');
-  if (fileStore.img.length >= IMG_MAX && warn) warn.style.display = 'block';
+  const max = key === 'summary' ? SUMMARY_MAX : IMG_MAX;
+  const remaining = max - fileStore[key].length;
+  fileStore[key].push(...valid.slice(0, remaining));
+  if (key === 'summary') renderSummaryPreviews(); else renderImgPreviews();
 }
 
 function removeImg(idx) {
@@ -2924,13 +3120,28 @@ function removeImg(idx) {
   if (warn) warn.style.display = fileStore.img.length >= IMG_MAX ? 'block' : 'none';
 }
 
+function removeSummary(idx) {
+  fileStore.summary.splice(idx, 1);
+  renderSummaryPreviews();
+}
+
+function renderSummaryPreviews() {
+  const grid = document.getElementById('preview-summary');
+  if (!grid) return;
+  grid.innerHTML = fileStore.summary.map((f, i) => {
+    const url = URL.createObjectURL(f);
+    return `<div class="img-thumb"><img src="${url}" alt="${f.name}"><button class="rm-btn" onclick="removeSummary(${i})" title="ลบ">✕</button></div>`;
+  }).join('');
+  updateFileSummary();
+}
+
 function renderImgPreviews() {
   const grid = document.getElementById('preview-img');
   let warn = document.getElementById('img-warn');
   if (!warn) {
     warn = document.createElement('div');
     warn.id = 'img-warn'; warn.className = 'upload-warn';
-    warn.textContent = 'อัพโหลดได้สูงสุด 7 รูปเท่านั้น';
+    warn.textContent = 'อัพโหลดได้สูงสุด 8 รูปเท่านั้น';
     warn.style.display = 'none';
     grid.parentNode.insertBefore(warn, grid);
   }
@@ -2978,25 +3189,29 @@ function dzDrop(e, inputId, type) {
   e.preventDefault();
   dzLeave(e.currentTarget.id);
   const files = Array.from(e.dataTransfer.files);
-  if (type === 'img') addImages(files);
+  if (type === 'img') addImages(files, 'img');
+  else if (type === 'summary') addImages(files, 'summary');
   else if (type === 'ppt') addFileList(files, 'ppt', ['application/vnd.ms-powerpoint','application/vnd.openxmlformats-officedocument.presentationml.presentation'], ['.ppt','.pptx']);
   else addFileList(files, 'doc', ['application/msword','application/vnd.openxmlformats-officedocument.wordprocessingml.document','application/pdf'], ['.doc','.docx','.pdf']);
 }
 
 function updateFileSummary() {
   const imgN = fileStore.img.length;
+  const sumN = fileStore.summary.length;
   const pptN = fileStore.ppt.length;
   const docN = fileStore.doc.length;
-  const total = imgN + pptN + docN;
+  const total = imgN + sumN + pptN + docN;
 
   document.getElementById('summary-total-num').textContent = total;
-  document.getElementById('summary-img-num').textContent = imgN + ' / 7';
+  document.getElementById('summary-img-num').textContent = imgN + ' / 8';
+  const sumEl = document.getElementById('summary-summary-num');
+  if (sumEl) { sumEl.textContent = sumN + ' / 2'; sumEl.style.color = sumN === 0 ? 'var(--text-hint)' : 'var(--green)'; }
   document.getElementById('summary-ppt-num').textContent = pptN;
   document.getElementById('summary-doc-num').textContent = docN;
 
   // สีตามจำนวน
   const imgEl = document.getElementById('summary-img-num');
-  imgEl.style.color = imgN === 0 ? 'var(--text-hint)' : imgN >= 7 ? 'var(--red)' : 'var(--green)';
+  imgEl.style.color = imgN === 0 ? 'var(--text-hint)' : imgN >= 8 ? 'var(--red)' : 'var(--green)';
   const pptEl = document.getElementById('summary-ppt-num');
   pptEl.style.color = pptN === 0 ? 'var(--text-hint)' : 'var(--amber)';
   const docEl = document.getElementById('summary-doc-num');
@@ -3021,6 +3236,9 @@ function updateFileSummary() {
   // สร้าง list รวมทุกประเภท พร้อมลำดับ
   let seq = 1;
   const rows = [];
+  fileStore.summary.forEach(function(f) {
+    rows.push({ seq: seq++, icon: '📈', name: f.name, label: 'รูปสรุปรายงาน', color: 'var(--green)' });
+  });
   fileStore.img.forEach(function(f) {
     rows.push({ seq: seq++, icon: '🖼️', name: f.name, label: 'รูปภาพ', color: 'var(--green)' });
   });
@@ -3045,8 +3263,8 @@ function updateFileSummary() {
 }
 
 function clearFiles() {
-  fileStore.img = []; fileStore.ppt = []; fileStore.doc = [];
-  renderImgPreviews(); renderFileList('ppt'); renderFileList('doc');
+  fileStore.img = []; fileStore.summary = []; fileStore.ppt = []; fileStore.doc = [];
+  renderImgPreviews(); renderSummaryPreviews(); renderFileList('ppt'); renderFileList('doc');
   const warn = document.getElementById('img-warn');
   if (warn) warn.style.display = 'none';
 }
