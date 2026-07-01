@@ -1899,8 +1899,10 @@ async function saveRecord() {
   }
 
   toast((isEdit ? 'แก้ไขสำเร็จ — ' : 'บันทึกสำเร็จ — ') + rec.ref, 'success');
-  clearForm();
+  // โหลดข้อมูลใหม่ก่อน (ให้ records มีเรคคอร์ดที่เพิ่งบันทึก) แล้วค่อยล้างฟอร์ม
+  // → genRef ตอน clearForm จะสร้างเลขที่รายงานใหม่ที่ไม่ซ้ำกับที่เพิ่งบันทึก
   await loadRecordsFromGSheets();
+  clearForm();
 }
 
 async function fileToBase64(file) {
