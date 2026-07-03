@@ -1552,6 +1552,12 @@ async function loadRecordsFromGSheets() {
       document.getElementById('record-count-sidebar').textContent = 'รายการทั้งหมด: ' + records.length;
       if (data.length > 0) toast('โหลดข้อมูล ' + data.length + ' รายการ ✓', 'success');
       if (typeof updateNotiBadge === 'function') updateNotiBadge();
+      // เลขที่รายงานถูก gen ไว้ตั้งแต่ก่อนข้อมูลโหลดเสร็จ → คำนวณใหม่กันเลขซ้ำ (ยกเว้นกำลังแก้ไข)
+      if (!editingRef && document.getElementById('f-ref')) {
+        const nr = genRef();
+        document.getElementById('f-ref').value = nr;
+        const rd = document.getElementById('ref-display'); if (rd) rd.textContent = nr;
+      }
     }
   } catch(e) {
     toast('โหลดข้อมูลไม่สำเร็จ — ตรวจสอบอินเทอร์เน็ต', 'error');
@@ -1840,10 +1846,10 @@ async function saveRecord() {
   const totalCount = fileStore.img.length + fileStore.summary.length + fileStore.ppt.length + fileStore.doc.length;
   if (totalCount > 0) {
     toast('⏳ กำลังอัพโหลดไฟล์แนบ...', '');
-    imgUrls = await up(fileStore.img);
-    summaryImgUrls = await up(fileStore.summary);
-    pptUrls = await up(fileStore.ppt);
-    docUrls = await up(fileStore.doc);
+    // อัพโหลดทั้ง 4 หมวดพร้อมกัน (เดิมต่อคิวทีละหมวด — ช้ากว่ามากเมื่อไฟล์เยอะ)
+    [imgUrls, summaryImgUrls, pptUrls, docUrls] = await Promise.all([
+      up(fileStore.img), up(fileStore.summary), up(fileStore.ppt), up(fileStore.doc)
+    ]);
     const successCount = imgUrls.length + summaryImgUrls.length + pptUrls.length + docUrls.length;
     toast(successCount < totalCount ? `⚠️ อัพโหลดสำเร็จ ${successCount}/${totalCount} ไฟล์` : `✅ อัพโหลดไฟล์สำเร็จ ${successCount} ไฟล์`, successCount < totalCount ? 'error' : 'success');
   }
@@ -1855,6 +1861,12 @@ async function saveRecord() {
     docUrls = (existing.docUrls||[]).concat(docUrls);
   }
 
+  // อ่านข้อมูลจาก DOM ครั้งเดียวเก็บใส่ตัวแปร (เดิมเรียก getVictims/getWeapons ซ้ำหลายรอบ)
+  const victimsArr = victimKnown ? getVictims() : [];
+  const perpsArr   = arrested === 'yes' ? getPerpsArr().map(p=>({...p,arrested:true}))
+                   : perpKnown ? getPerpsKnown().map(p=>({...p,arrested:false})) : [];
+  const weaponsArr = weaponVal === 'yes' ? getWeapons() : [];
+
   const rec = {
     ref, date: val('f-date'), time: val('f-time'),
     location: getLocationValue(), type: selectedType,
@@ -1865,16 +1877,15 @@ async function saveRecord() {
     dutyOfficer: { name: val('do-name'), rank: val('do-rank'), phone: val('do-phone') },
     stationChief: { name: val('chief-name'), rank: val('chief-rank'), phone: val('chief-phone') },
     victimKnown,
-    victims: victimKnown ? getVictims() : [],
-    victim: victimKnown ? (getVictims()[0]||null) : null,   // backward compat
+    victims: victimsArr,
+    victim: victimsArr[0] || null,   // backward compat
     arrested, perpKnown,
-    perps: arrested === 'yes' ? getPerpsArr().map(p=>({...p,arrested:true}))
-           : perpKnown ? getPerpsKnown().map(p=>({...p,arrested:false})) : [],
-    perp: (arrested==='yes' ? getPerpsArr()[0] : perpKnown ? getPerpsKnown()[0] : null) || null,
+    perps: perpsArr,
+    perp: perpsArr[0] || null,
     weapon: weaponVal,
-    weapons: weaponVal === 'yes' ? getWeapons() : [],
-    weaponType: weaponVal === 'yes' ? (getWeapons()[0]?.type || '') : '',   // backward compat
-    weaponDetail: weaponVal === 'yes' ? (getWeapons()[0]?.detail || '') : '',
+    weapons: weaponsArr,
+    weaponType: weaponsArr[0]?.type || '',   // backward compat
+    weaponDetail: weaponsArr[0]?.detail || '',
     damages: damageVal === 'yes' ? getDamages() : [],
     evidence: evidenceVal === 'yes' ? getEvidence() : [],
     status: caseStatus,
@@ -1887,9 +1898,11 @@ async function saveRecord() {
     rec.adminName  = sessionStorage.getItem('adminName')  || '';
   }
 
-  const ok = await sendToGoogleSheets(rec);
+  const resp = await sendToGoogleSheets(rec);
   if (btnSave) { btnSave.disabled = false; btnSave.textContent = '💾 บันทึกข้อมูล'; }
-  if (!ok) { toast('❌ บันทึกไม่สำเร็จ — กรุณาลองใหม่ (ข้อมูลยังอยู่ในฟอร์ม)', 'error'); return; }
+  if (!resp || resp.status !== 'ok') { toast('❌ บันทึกไม่สำเร็จ — กรุณาลองใหม่ (ข้อมูลยังอยู่ในฟอร์ม)', 'error'); return; }
+  // backend อาจปรับเลขที่รายงานให้ใหม่ (กรณี 2 คนบันทึกพร้อมกันได้เลขซ้ำ)
+  const savedRef = resp.ref || rec.ref;
 
   // auto-learn สภ. (เฉพาะตอนบันทึกใหม่ ไม่ใช่ตอนกำลังพิมพ์)
   const stName = val('station-area');
@@ -1898,7 +1911,7 @@ async function saveRecord() {
       body: JSON.stringify({ action:'addStation', province: val('f-province'), amphoe: val('f-amphoe'), station: stName }) }).catch(()=>{});
   }
 
-  toast((isEdit ? 'แก้ไขสำเร็จ — ' : 'บันทึกสำเร็จ — ') + rec.ref, 'success');
+  toast((isEdit ? 'แก้ไขสำเร็จ — ' : 'บันทึกสำเร็จ — ') + savedRef + (resp.refChanged ? ' (ระบบปรับเลขให้อัตโนมัติ กันเลขซ้ำ)' : ''), 'success');
   // โหลดข้อมูลใหม่ก่อน (ให้ records มีเรคคอร์ดที่เพิ่งบันทึก) แล้วค่อยล้างฟอร์ม
   // → genRef ตอน clearForm จะสร้างเลขที่รายงานใหม่ที่ไม่ซ้ำกับที่เพิ่งบันทึก
   await loadRecordsFromGSheets();
@@ -1986,9 +1999,8 @@ async function sendToGoogleSheets(rec) {
       headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
       body: JSON.stringify(rec)
     });
-    const data = await res.json();
-    return data.status === 'ok';
-  } catch(e) { console.warn('GSheets error:', e); return false; }
+    return await res.json();   // { status, ref, refChanged, ... }
+  } catch(e) { console.warn('GSheets error:', e); return null; }
 }
 
 // ════════════════════════════════════════
@@ -2114,10 +2126,6 @@ function removePerson(prefix, idx) {
     if (!perpsKnownList.length) perpsKnownList=[{}];
     renderPerpsKnw();
   }
-}
-
-function collectPersons(prefix, arr) {
-  return arr.map((_,i) => readPerson(prefix, i)).filter(p => p.fname || p.lname);
 }
 
 function collectFromDOM(prefix, count) {
@@ -2916,10 +2924,13 @@ function editRecord(ref) {
   const ref = hash.replace('#edit=', '');
   // รอให้ app โหลดและดึงข้อมูลจาก GSheets เสร็จก่อน
   window.addEventListener('load', () => {
-    setTimeout(() => {
+    // รอจนข้อมูลโหลดเสร็จจริง (เดิมเดา 2 วินาที — เน็ตช้าฟอร์มจะว่างเงียบๆ)
+    let tries = 0;
+    const timer = setInterval(() => {
       const r = records.find(x => x.ref === ref);
-      if (r) prefillEditForm(r);
-    }, 2000);
+      if (r) { clearInterval(timer); prefillEditForm(r); }
+      else if (++tries >= 30) { clearInterval(timer); toast('ไม่พบข้อมูล ' + ref, 'error'); }
+    }, 500);
   });
 })();
 
@@ -3132,7 +3143,7 @@ function renderSummaryPreviews() {
   if (!grid) return;
   grid.innerHTML = fileStore.summary.map((f, i) => {
     const url = URL.createObjectURL(f);
-    return `<div class="img-thumb"><img src="${url}" alt="${f.name}"><button class="rm-btn" onclick="removeSummary(${i})" title="ลบ">✕</button></div>`;
+    return `<div class="img-thumb"><img src="${url}" alt="${f.name}" onload="URL.revokeObjectURL(this.src)"><button class="rm-btn" onclick="removeSummary(${i})" title="ลบ">✕</button></div>`;
   }).join('');
   updateFileSummary();
 }
@@ -3149,7 +3160,7 @@ function renderImgPreviews() {
   }
   grid.innerHTML = fileStore.img.map((f, i) => {
     const url = URL.createObjectURL(f);
-    return `<div class="img-thumb"><img src="${url}" alt="${f.name}"><button class="rm-btn" onclick="removeImg(${i})" title="ลบ">✕</button></div>`;
+    return `<div class="img-thumb"><img src="${url}" alt="${f.name}" onload="URL.revokeObjectURL(this.src)"><button class="rm-btn" onclick="removeImg(${i})" title="ลบ">✕</button></div>`;
   }).join('');
   const countEl = document.getElementById('img-count');
   if (countEl) countEl.textContent = fileStore.img.length + '/' + IMG_MAX;
