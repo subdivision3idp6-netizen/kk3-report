@@ -1841,14 +1841,14 @@ async function saveRecord() {
 
   // อัพโหลดไฟล์แนบไปยัง Google Drive
   const toFileStr = obj => (obj && obj.url) ? (obj.name ? obj.name + '☆' + obj.url : obj.url) : null;
-  const up = async arr => (await Promise.all(arr.map(f => uploadFileToDrive(f, ref)))).map(toFileStr).filter(Boolean);
+  const up = async (arr, type) => (await Promise.all(arr.map(f => uploadFileToDrive(f, ref, type)))).map(toFileStr).filter(Boolean);
   let imgUrls = [], summaryImgUrls = [], pptUrls = [], docUrls = [];
   const totalCount = fileStore.img.length + fileStore.summary.length + fileStore.ppt.length + fileStore.doc.length;
   if (totalCount > 0) {
     toast('⏳ กำลังอัพโหลดไฟล์แนบ...', '');
     // อัพโหลดทั้ง 4 หมวดพร้อมกัน (เดิมต่อคิวทีละหมวด — ช้ากว่ามากเมื่อไฟล์เยอะ)
     [imgUrls, summaryImgUrls, pptUrls, docUrls] = await Promise.all([
-      up(fileStore.img), up(fileStore.summary), up(fileStore.ppt), up(fileStore.doc)
+      up(fileStore.img, 'img'), up(fileStore.summary, 'summary'), up(fileStore.ppt, 'ppt'), up(fileStore.doc, 'doc')
     ]);
     const successCount = imgUrls.length + summaryImgUrls.length + pptUrls.length + docUrls.length;
     toast(successCount < totalCount ? `⚠️ อัพโหลดสำเร็จ ${successCount}/${totalCount} ไฟล์` : `✅ อัพโหลดไฟล์สำเร็จ ${successCount} ไฟล์`, successCount < totalCount ? 'error' : 'success');
@@ -1927,7 +1927,7 @@ async function fileToBase64(file) {
   });
 }
 
-async function uploadFileToDrive(file, ref) {
+async function uploadFileToDrive(file, ref, fileType) {
   const MAX_MB = 8;
   if (file.size > MAX_MB * 1024 * 1024) {
     toast('ข้ามไฟล์ ' + file.name + ' (เกิน ' + MAX_MB + 'MB)', 'error');
@@ -1937,7 +1937,7 @@ async function uploadFileToDrive(file, ref) {
     const base64 = await fileToBase64(file);
     // ส่งเป็น text/plain (simple request, ไม่ trigger preflight) เพื่อให้ Apps Script รับผ่าน e.postData.contents
     // หลีกเลี่ยงปัญหา e.parameter.payload ถูก truncate เมื่อไฟล์ใหญ่
-    const body = JSON.stringify({ action:'uploadFile', ref, filename:file.name, mimeType:file.type||'application/octet-stream', base64 });
+    const body = JSON.stringify({ action:'uploadFile', ref, fileType: fileType||'', filename:file.name, mimeType:file.type||'application/octet-stream', base64 });
     const res = await fetch(GS_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
