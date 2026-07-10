@@ -816,7 +816,7 @@
           <div>
             <!-- 1. Images -->
             <div class="upload-section" style="margin-bottom:18px;">
-              <div class="upload-label">รูปภาพ <span class="upload-hint">(ไม่เกิน 8 รูป · jpg, png, gif, webp, heic)</span></div>
+              <div class="upload-label">รูปภาพ <span class="upload-hint">(ไม่จำกัดจำนวน · jpg, png, gif, webp, heic · ไฟล์ละไม่เกิน 8MB)</span></div>
               <div class="drop-zone" id="drop-img" onclick="document.getElementById('input-img').click()" ondragover="dzOver(event,'drop-img')" ondragleave="dzLeave('drop-img')" ondrop="dzDrop(event,'input-img','img')">
                 <div class="dz-icon">🖼️</div>
                 <div class="dz-text">คลิกหรือลากรูปมาวางที่นี่</div>
@@ -3100,7 +3100,7 @@ window.addEventListener('scroll', function(e){
 
 /* ── File Upload Logic ── */
 const fileStore = { img: [], summary: [], ppt: [], doc: [] };
-const IMG_MAX = 8;
+const IMG_MAX = Infinity;   // ไม่จำกัดจำนวนรูป/เคส (จำกัดเฉพาะขนาดไฟล์ละ 8MB)
 const SUMMARY_MAX = 2;
 
 function fmtSize(b) {
@@ -3163,7 +3163,7 @@ function renderImgPreviews() {
     return `<div class="img-thumb"><img src="${url}" alt="${f.name}" onload="URL.revokeObjectURL(this.src)"><button class="rm-btn" onclick="removeImg(${i})" title="ลบ">✕</button></div>`;
   }).join('');
   const countEl = document.getElementById('img-count');
-  if (countEl) countEl.textContent = fileStore.img.length + '/' + IMG_MAX;
+  if (countEl) countEl.textContent = fileStore.img.length + ' รูป';
   updateFileSummary();
 }
 
