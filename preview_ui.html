@@ -256,6 +256,10 @@
   .img-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
   .img-thumb .rm-btn { position: absolute; top: 4px; right: 4px; background: rgba(14,28,48,.6); color: #fff; border: none; border-radius: 50%; width: 20px; height: 20px; font-size: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; line-height: 1; transition: background .15s; }
   .img-thumb .rm-btn:hover { background: var(--red-mid); }
+  .img-thumb.existing-thumb { border-color: var(--blue); }
+  .img-thumb.existing-thumb.noimg::before { content: '📎'; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 26px; background: var(--blue-light); }
+  .ex-tag { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(20,53,94,.82); color: #fff; font-size: 9px; font-weight: 700; text-align: center; padding: 1px 0; letter-spacing: .04em; }
+  .ex-tag-inline { font-size: 10px; font-weight: 700; color: var(--blue); background: var(--blue-light); border: 1px solid #CBDFF3; border-radius: 5px; padding: 1px 6px; flex-shrink: 0; }
   .file-list { margin-top: 8px; display: flex; flex-direction: column; gap: 6px; }
   .file-item { display: flex; align-items: center; gap: 10px; padding: 9px 13px; background: var(--surface-2); border-radius: 10px; border: 1px solid var(--gray-border); font-size: 13px; transition: border-color .15s; }
   .file-item:hover { border-color: #C3D2E4; }
@@ -1292,9 +1296,9 @@ function validateBeforeSave() {
   if (!stationArea) missing.push('ข้อมูลสถานี — พื้นที่รับผิดชอบของ สภ.');
   if (!doName)      missing.push('ข้อมูลสถานี — ชื่อร้อยเวรผู้รับผิดชอบ');
   if (!chiefName)   missing.push('ข้อมูลสถานี — ชื่อหัวหน้าสถานี');
-  // 6. ไฟล์ภาพ (โหมดแก้ไข: มีไฟล์เดิมอยู่แล้ว ไม่บังคับแนบใหม่)
-  const hadImg = editingRef && (records.find(r => r.ref === editingRef)?.imgUrls||[]).length > 0;
-  if ((!fileStore || fileStore.img.length === 0) && !hadImg)
+  // 6. ไฟล์ภาพ — ต้องมีอย่างน้อย 1 รูป (นับทั้งไฟล์เดิมที่คงไว้ + ไฟล์ใหม่)
+  const imgCount = (existingFiles?.img.length || 0) + (fileStore?.img.length || 0);
+  if (imgCount === 0)
     missing.push('ไฟล์ภาพ — แนบรูปภาพอย่างน้อย 1 รูป');
   return missing;
 }
@@ -1888,12 +1892,12 @@ async function saveRecord() {
     const successCount = imgUrls.length + summaryImgUrls.length + pptUrls.length + docUrls.length;
     toast(successCount < totalCount ? `⚠️ อัพโหลดสำเร็จ ${successCount}/${totalCount} ไฟล์` : `✅ อัพโหลดไฟล์สำเร็จ ${successCount} ไฟล์`, successCount < totalCount ? 'error' : 'success');
   }
-  // โหมดแก้ไข: merge ไฟล์ใหม่กับของเดิม (ไม่ทับ)
+  // โหมดแก้ไข: ไฟล์ผลลัพธ์ = ไฟล์เดิมที่ "คงไว้" (existingFiles หลังผู้ใช้ลบบางไฟล์) + ไฟล์ใหม่
   if (isEdit) {
-    imgUrls = (existing.imgUrls||[]).concat(imgUrls);
-    summaryImgUrls = (existing.summaryImgUrls||[]).concat(summaryImgUrls);
-    pptUrls = (existing.pptUrls||[]).concat(pptUrls);
-    docUrls = (existing.docUrls||[]).concat(docUrls);
+    imgUrls = existingFiles.img.concat(imgUrls);
+    summaryImgUrls = existingFiles.summary.concat(summaryImgUrls);
+    pptUrls = existingFiles.ppt.concat(pptUrls);
+    docUrls = existingFiles.doc.concat(docUrls);
   }
 
   // อ่านข้อมูลจาก DOM ครั้งเดียวเก็บใส่ตัวแปร (เดิมเรียก getVictims/getWeapons ซ้ำหลายรอบ)
@@ -2376,8 +2380,12 @@ function clearForm() {
   document.getElementById('dmg-no').checked = true; show('damage-sub', false);
   document.getElementById('w-no').checked = true; showWeapon('no');
   document.getElementById('cs-inprogress').checked = true;
-  // reset ไฟล์แนบ
-  if (typeof fileStore !== 'undefined') { fileStore.img=[]; fileStore.summary=[]; fileStore.ppt=[]; fileStore.doc=[]; if (typeof renderImgPreviews==='function'){ renderImgPreviews(); renderSummaryPreviews(); renderFileList('ppt'); renderFileList('doc'); } }
+  // reset ไฟล์แนบ (ทั้งไฟล์ใหม่และไฟล์เดิมจากโหมดแก้ไข)
+  if (typeof fileStore !== 'undefined') {
+    fileStore.img=[]; fileStore.summary=[]; fileStore.ppt=[]; fileStore.doc=[];
+    existingFiles = { img: [], summary: [], ppt: [], doc: [] };
+    if (typeof renderImgPreviews==='function'){ renderImgPreviews(); renderSummaryPreviews(); renderFileList('ppt'); renderFileList('doc'); }
+  }
   editingRef = null;
   init();
 }
@@ -3062,9 +3070,16 @@ function prefillEditForm(r) {
     // โหลดสถานะคดี
     const stId = r.status === 'done' ? 'cs-done' : 'cs-inprogress';
     if (document.getElementById(stId)) document.getElementById(stId).checked = true;
-    // แจ้งไฟล์แนบเดิม (ถูกเก็บไว้ ระบบจะ merge กับไฟล์ที่เพิ่มใหม่)
-    const oldFiles = (r.imgUrls||[]).length + (r.summaryImgUrls||[]).length + (r.pptUrls||[]).length + (r.docUrls||[]).length;
-    toast('โหลดข้อมูลแก้ไข: ' + r.ref + (oldFiles ? ` (มีไฟล์เดิม ${oldFiles} ไฟล์ — เพิ่มใหม่ได้)` : ''), 'success');
+    // โหลดไฟล์แนบเดิมมาแสดง (ลบทีละไฟล์ได้ + เพิ่มใหม่ได้)
+    existingFiles = {
+      img: (r.imgUrls||[]).slice(),
+      summary: (r.summaryImgUrls||[]).slice(),
+      ppt: (r.pptUrls||[]).slice(),
+      doc: (r.docUrls||[]).slice()
+    };
+    renderImgPreviews(); renderSummaryPreviews(); renderFileList('ppt'); renderFileList('doc');
+    const oldFiles = existingFiles.img.length + existingFiles.summary.length + existingFiles.ppt.length + existingFiles.doc.length;
+    toast('โหลดข้อมูลแก้ไข: ' + r.ref + (oldFiles ? ` (ไฟล์เดิม ${oldFiles} ไฟล์ — ลบ/เพิ่มได้)` : ''), 'success');
     // เลื่อนขึ้นบน
     window.scrollTo(0,0);
   }, 300);
@@ -3135,8 +3150,31 @@ window.addEventListener('scroll', function(e){
 
 /* ── File Upload Logic ── */
 const fileStore = { img: [], summary: [], ppt: [], doc: [] };
+// ไฟล์เดิม (โหมดแก้ไข) — เก็บสตริง "name☆url" เพื่อโชว์ให้เห็นและเลือกลบได้
+let existingFiles = { img: [], summary: [], ppt: [], doc: [] };
 const IMG_MAX = Infinity;   // ไม่จำกัดจำนวนรูป/เคส (จำกัดเฉพาะขนาดไฟล์ละ 8MB)
 const SUMMARY_MAX = 2;
+
+// thumbnail HTML ของไฟล์รูปเดิม (img / summary) พร้อมป้าย "เดิม" + ปุ่มลบ
+function existingImgThumbs(key) {
+  return existingFiles[key].map((s, i) => {
+    const f = parseFileEntry(s); const fid = getDriveFileId(f.url);
+    const thumb = fid ? `https://drive.google.com/thumbnail?id=${fid}&sz=w200` : '';
+    return `<div class="img-thumb existing-thumb" title="${(f.name||'ไฟล์เดิม')} (ไฟล์เดิม)">
+      ${thumb ? `<img src="${thumb}" onerror="this.style.display='none';this.parentNode.classList.add('noimg')">` : ''}
+      <span class="ex-tag">เดิม</span>
+      <button class="rm-btn" onclick="removeExistingImg('${key}',${i})" title="ลบไฟล์เดิม">✕</button>
+    </div>`;
+  }).join('');
+}
+function removeExistingImg(key, idx) {
+  existingFiles[key].splice(idx, 1);
+  if (key === 'summary') renderSummaryPreviews(); else renderImgPreviews();
+}
+function removeExistingFile(type, idx) {
+  existingFiles[type].splice(idx, 1);
+  renderFileList(type);
+}
 
 function fmtSize(b) {
   if (b < 1024) return b + ' B';
@@ -3176,7 +3214,7 @@ function removeSummary(idx) {
 function renderSummaryPreviews() {
   const grid = document.getElementById('preview-summary');
   if (!grid) return;
-  grid.innerHTML = fileStore.summary.map((f, i) => {
+  grid.innerHTML = existingImgThumbs('summary') + fileStore.summary.map((f, i) => {
     const url = URL.createObjectURL(f);
     return `<div class="img-thumb"><img src="${url}" alt="${f.name}" onload="URL.revokeObjectURL(this.src)"><button class="rm-btn" onclick="removeSummary(${i})" title="ลบ">✕</button></div>`;
   }).join('');
@@ -3193,12 +3231,12 @@ function renderImgPreviews() {
     warn.style.display = 'none';
     grid.parentNode.insertBefore(warn, grid);
   }
-  grid.innerHTML = fileStore.img.map((f, i) => {
+  grid.innerHTML = existingImgThumbs('img') + fileStore.img.map((f, i) => {
     const url = URL.createObjectURL(f);
     return `<div class="img-thumb"><img src="${url}" alt="${f.name}" onload="URL.revokeObjectURL(this.src)"><button class="rm-btn" onclick="removeImg(${i})" title="ลบ">✕</button></div>`;
   }).join('');
   const countEl = document.getElementById('img-count');
-  if (countEl) countEl.textContent = fileStore.img.length + ' รูป';
+  if (countEl) countEl.textContent = (existingFiles.img.length + fileStore.img.length) + ' รูป';
   updateFileSummary();
 }
 
@@ -3220,7 +3258,16 @@ function renderFileList(type) {
   const icons = { ppt: '📊', doc: '📄' };
   const el = document.getElementById('list-' + type);
   if (!el) return;
-  el.innerHTML = fileStore[type].map((f, i) =>
+  const existingHtml = existingFiles[type].map((s, i) => {
+    const f = parseFileEntry(s);
+    return `<div class="file-item">
+      <span class="fi-icon">${icons[type]}</span>
+      <a class="fi-name" href="${f.url}" target="_blank" title="${f.name||'ไฟล์เดิม'}" style="text-decoration:none;">${f.name||'ไฟล์เดิม'}</a>
+      <span class="ex-tag-inline">เดิม</span>
+      <button class="rm-btn2" onclick="removeExistingFile('${type}',${i})">ลบ</button>
+    </div>`;
+  }).join('');
+  el.innerHTML = existingHtml + fileStore[type].map((f, i) =>
     `<div class="file-item">
       <span class="fi-icon">${icons[type]}</span>
       <span class="fi-name" title="${f.name}">${f.name}</span>
@@ -3244,14 +3291,14 @@ function dzDrop(e, inputId, type) {
 }
 
 function updateFileSummary() {
-  const imgN = fileStore.img.length;
-  const sumN = fileStore.summary.length;
-  const pptN = fileStore.ppt.length;
-  const docN = fileStore.doc.length;
+  const imgN = existingFiles.img.length + fileStore.img.length;
+  const sumN = existingFiles.summary.length + fileStore.summary.length;
+  const pptN = existingFiles.ppt.length + fileStore.ppt.length;
+  const docN = existingFiles.doc.length + fileStore.doc.length;
   const total = imgN + sumN + pptN + docN;
 
   document.getElementById('summary-total-num').textContent = total;
-  document.getElementById('summary-img-num').textContent = imgN + ' / 8';
+  document.getElementById('summary-img-num').textContent = imgN + ' รูป';
   const sumEl = document.getElementById('summary-summary-num');
   if (sumEl) { sumEl.textContent = sumN + ' / 2'; sumEl.style.color = sumN === 0 ? 'var(--text-hint)' : 'var(--green)'; }
   document.getElementById('summary-ppt-num').textContent = pptN;
@@ -3259,7 +3306,7 @@ function updateFileSummary() {
 
   // สีตามจำนวน
   const imgEl = document.getElementById('summary-img-num');
-  imgEl.style.color = imgN === 0 ? 'var(--text-hint)' : imgN >= 8 ? 'var(--red)' : 'var(--green)';
+  imgEl.style.color = imgN === 0 ? 'var(--text-hint)' : 'var(--green)';
   const pptEl = document.getElementById('summary-ppt-num');
   pptEl.style.color = pptN === 0 ? 'var(--text-hint)' : 'var(--amber)';
   const docEl = document.getElementById('summary-doc-num');
@@ -3281,21 +3328,18 @@ function updateFileSummary() {
   listWrap.style.display = 'block';
   emptyEl.style.display = 'none';
 
-  // สร้าง list รวมทุกประเภท พร้อมลำดับ
+  // สร้าง list รวมทุกประเภท พร้อมลำดับ (ไฟล์เดิม + ไฟล์ใหม่)
   let seq = 1;
   const rows = [];
-  fileStore.summary.forEach(function(f) {
-    rows.push({ seq: seq++, icon: '📈', name: f.name, label: 'รูปสรุปรายงาน', color: 'var(--green)' });
-  });
-  fileStore.img.forEach(function(f) {
-    rows.push({ seq: seq++, icon: '🖼️', name: f.name, label: 'รูปภาพ', color: 'var(--green)' });
-  });
-  fileStore.ppt.forEach(function(f) {
-    rows.push({ seq: seq++, icon: '📊', name: f.name, label: 'PowerPoint', color: 'var(--amber)' });
-  });
-  fileStore.doc.forEach(function(f) {
-    rows.push({ seq: seq++, icon: '📄', name: f.name, label: 'เอกสาร', color: 'var(--blue)' });
-  });
+  const exName = s => (parseFileEntry(s)||{}).name || 'ไฟล์เดิม';
+  existingFiles.summary.forEach(s => rows.push({ seq: seq++, icon: '📈', name: exName(s), label: 'รูปสรุปรายงาน (เดิม)', color: 'var(--green)' }));
+  fileStore.summary.forEach(f => rows.push({ seq: seq++, icon: '📈', name: f.name, label: 'รูปสรุปรายงาน', color: 'var(--green)' }));
+  existingFiles.img.forEach(s => rows.push({ seq: seq++, icon: '🖼️', name: exName(s), label: 'รูปภาพ (เดิม)', color: 'var(--green)' }));
+  fileStore.img.forEach(f => rows.push({ seq: seq++, icon: '🖼️', name: f.name, label: 'รูปภาพ', color: 'var(--green)' }));
+  existingFiles.ppt.forEach(s => rows.push({ seq: seq++, icon: '📊', name: exName(s), label: 'PowerPoint (เดิม)', color: 'var(--amber)' }));
+  fileStore.ppt.forEach(f => rows.push({ seq: seq++, icon: '📊', name: f.name, label: 'PowerPoint', color: 'var(--amber)' }));
+  existingFiles.doc.forEach(s => rows.push({ seq: seq++, icon: '📄', name: exName(s), label: 'เอกสาร (เดิม)', color: 'var(--blue)' }));
+  fileStore.doc.forEach(f => rows.push({ seq: seq++, icon: '📄', name: f.name, label: 'เอกสาร', color: 'var(--blue)' }));
 
   itemsEl.innerHTML = rows.map(function(r) {
     const shortName = r.name.length > 22 ? r.name.slice(0, 20) + '…' : r.name;
