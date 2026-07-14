@@ -730,6 +730,18 @@
         </div>
       </div>
 
+      <!-- Accusation (ข้อกล่าวหา) -->
+      <div class="card">
+        <div class="card-header">
+          <div class="icon" style="background:#FCEBEB">⚖️</div>
+          <div class="card-title">ข้อกล่าวหา</div>
+        </div>
+        <div class="field">
+          <label>ข้อกล่าวหา / ฐานความผิด</label>
+          <textarea id="f-accusation" placeholder="เช่น ร่วมกันลักทรัพย์ในเวลากลางคืนโดยใช้ยานพาหนะ ฯลฯ"></textarea>
+        </div>
+      </div>
+
       <!-- Evidence (ของกลาง) -->
       <div class="card">
         <div class="card-header">
@@ -1909,7 +1921,7 @@ async function saveRecord() {
   const rec = {
     ref, date: val('f-date'), time: val('f-time'),
     location: getLocationValue(), type: selectedType,
-    crime: getCrimeValue(), detail: getDetailValue(),
+    crime: getCrimeValue(), detail: getDetailValue(), accusation: val('f-accusation'),
     operator: currentOperator,
     stationArea: val('station-area'),
     province: val('f-province'),
@@ -2367,7 +2379,7 @@ function clearForm() {
   document.getElementById('f-province').value = '';
   document.getElementById('f-amphoe').innerHTML = '<option value="">— เลือกอำเภอ —</option>';
   document.getElementById('f-tambon').innerHTML = '<option value="">— เลือกตำบล —</option>';
-  ['f-detail',
+  ['f-detail','f-accusation',
    'do-name','do-rank','do-phone',
    'station-area','chief-name','chief-rank','chief-phone'].forEach(id => { if(document.getElementById(id)) document.getElementById(id).value = ''; });
   initPersonLists();
@@ -2815,6 +2827,7 @@ function showDetail(idxOrRef) {
           <div class="detail-field full"><label>พื้นที่เกิดเหตุ</label><span>${df(r.location)}</span></div>
           <div class="detail-field"><label>ประเภทเหตุ</label><span><span class="badge ${typeBadge[r.type]||''}">${typeLabel[r.type]||r.type||'—'}</span></span></div>
           <div class="detail-field full"><label>รายละเอียด</label><span>${df(r.detail)}</span></div>
+          <div class="detail-field full"><label>ข้อกล่าวหา</label><span>${df(r.accusation)}</span></div>
         </div>
       </div>
       <div class="detail-section">
@@ -3020,6 +3033,7 @@ function prefillEditForm(r) {
         }
       }
       if(document.getElementById('f-detail')) document.getElementById('f-detail').value = r.detail||'';
+      if(document.getElementById('f-accusation')) document.getElementById('f-accusation').value = r.accusation||'';
     }
     if (r.type) selectType(r.type);
     if (r.stationArea) { document.getElementById('station-area').value = r.stationArea; onStationInput(r.stationArea); }
