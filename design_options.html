@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>เลือกดีไซน์ — ระบบบันทึกเหตุการณ์ กก.สืบสวน 3</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=Noto+Sans+Thai:wght@400;500;600;700&family=Sarabun:wght@400;500;600;700&family=Pridi:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'IBM Plex Sans Thai', sans-serif; background: #1B222C; color: #E7ECF2; padding: 32px 16px 80px; }
+  .wrap { max-width: 1080px; margin: 0 auto; }
+  .page-head { text-align: center; margin-bottom: 40px; }
+  .page-head h1 { font-size: 26px; font-weight: 700; }
+  .page-head p { color: #9DA9B8; margin-top: 8px; font-size: 15px; }
+  .option { background: #232B37; border: 1px solid #303B4A; border-radius: 18px; padding: 26px 26px 30px; margin-bottom: 44px; }
+  .opt-head { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; margin-bottom: 6px; }
+  .opt-num { font-size: 15px; font-weight: 700; background: #E7ECF2; color: #1B222C; border-radius: 8px; padding: 3px 12px; }
+  .opt-name { font-size: 22px; font-weight: 700; }
+  .opt-desc { color: #9DA9B8; font-size: 14px; line-height: 1.7; margin-bottom: 14px; }
+  .meta-row { display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 18px; font-size: 13px; color: #C6CFDA; }
+  .chips { display: flex; gap: 6px; align-items: center; }
+  .chip { width: 26px; height: 26px; border-radius: 7px; border: 1px solid rgba(255,255,255,.18); }
+  .mock { border-radius: 14px; overflow: hidden; border: 1px solid #303B4A; display: flex; min-height: 460px; }
+  .mk-side { width: 200px; flex-shrink: 0; padding: 18px 14px; display: flex; flex-direction: column; gap: 4px; }
+  .mk-logo { font-size: 13px; font-weight: 700; padding: 0 8px 14px; line-height: 1.4; }
+  .mk-logo small { display: block; font-weight: 400; font-size: 10px; opacity: .6; margin-top: 2px; }
+  .mk-nav { padding: 9px 12px; border-radius: 9px; font-size: 13px; }
+  .mk-main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+  .mk-top { padding: 12px 20px; font-size: 14px; font-weight: 700; display: flex; justify-content: space-between; align-items: center; }
+  .mk-chipop { font-size: 11px; font-weight: 600; padding: 4px 12px; border-radius: 14px; }
+  .mk-body { flex: 1; padding: 18px 20px; }
+  .mk-card { border-radius: 12px; padding: 16px 18px; margin-bottom: 14px; }
+  .mk-cardtitle { font-size: 13px; font-weight: 700; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+  .mk-ic { width: 26px; height: 26px; border-radius: 7px; display: inline-flex; align-items: center; justify-content: center; font-size: 13px; }
+  .mk-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+  .mk-f label { display: block; font-size: 10px; font-weight: 600; margin-bottom: 4px; opacity: .75; }
+  .mk-f .inp { border-radius: 8px; padding: 8px 10px; font-size: 12px; border: 1px solid transparent; }
+  .mk-tiles { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+  .mk-tile { border-radius: 10px; padding: 10px 6px; text-align: center; font-size: 11px; font-weight: 600; border: 1.5px solid transparent; }
+  .mk-tile span { display: block; font-size: 17px; margin-bottom: 3px; }
+  .mk-actions { display: flex; gap: 8px; justify-content: flex-end; }
+  .mk-btn { border-radius: 8px; padding: 9px 20px; font-size: 12px; font-weight: 600; border: 1px solid transparent; }
+  @media (max-width: 720px) { .mk-side { display: none; } }
+
+  /* ═══ แบบ 1: Calm Command ═══ */
+  .t1 { font-family: 'IBM Plex Sans Thai', sans-serif; background: #EEF2F7; color: #23303F; }
+  .t1 .mk-side { background: linear-gradient(180deg, #14355E, #0E2A4E); color: #B9CBE0; }
+  .t1 .mk-logo { color: #fff; }
+  .t1 .mk-nav.on { background: rgba(255,255,255,.13); color: #fff; font-weight: 600; }
+  .t1 .mk-top { background: rgba(255,255,255,.85); border-bottom: 1px solid #E3E9F1; }
+  .t1 .mk-chipop { background: #EBF3FC; color: #1A4E8F; border: 1px solid #CBDFF3; }
+  .t1 .mk-card { background: #fff; border: 1px solid #E3E9F1; box-shadow: 0 1px 2px rgba(16,35,61,.05), 0 4px 14px rgba(16,35,61,.06); }
+  .t1 .mk-ic { background: #EBF3FC; }
+  .t1 .mk-f .inp { background: #FBFCFE; border-color: #DCE4EE; color: #5C6B7C; }
+  .t1 .mk-tile { background: #FBFCFE; border-color: #DCE4EE; color: #5C6B7C; }
+  .t1 .mk-tile.sel { background: #FDEEED; border-color: #E05B54; color: #B3352F; box-shadow: 0 0 0 3px rgba(224,91,84,.14); }
+  .t1 .mk-btn.pri { background: linear-gradient(180deg, #3B7DD8, #2B6CB8); color: #fff; box-shadow: 0 2px 8px rgba(43,108,184,.3); }
+  .t1 .mk-btn.sec { background: #fff; border-color: #DCE4EE; color: #23303F; }
+
+  /* ═══ แบบ 2: Night Ops ═══ */
+  .t2 { font-family: 'Noto Sans Thai', sans-serif; background: #0D1420; color: #DCE4F0; }
+  .t2 .mk-side { background: #0A101A; border-right: 1px solid #1C2940; color: #8FA1BC; }
+  .t2 .mk-logo { color: #F2B33D; }
+  .t2 .mk-logo small { color: #8FA1BC; }
+  .t2 .mk-nav.on { background: rgba(242,179,61,.13); color: #F2B33D; font-weight: 600; border-left: 3px solid #F2B33D; border-radius: 4px 9px 9px 4px; }
+  .t2 .mk-top { background: #0F1725; border-bottom: 1px solid #1C2940; color: #DCE4F0; }
+  .t2 .mk-chipop { background: rgba(56,189,248,.12); color: #67D3F5; border: 1px solid rgba(56,189,248,.3); }
+  .t2 .mk-body { background: #0D1420; }
+  .t2 .mk-card { background: #131D2E; border: 1px solid #22304A; }
+  .t2 .mk-ic { background: rgba(242,179,61,.14); }
+  .t2 .mk-f label { color: #8FA1BC; }
+  .t2 .mk-f .inp { background: #0E1624; border-color: #2A3A57; color: #B9C6DA; }
+  .t2 .mk-tile { background: #0E1624; border-color: #2A3A57; color: #8FA1BC; }
+  .t2 .mk-tile.sel { background: rgba(240,82,82,.13); border-color: #F05252; color: #FF8B8B; box-shadow: 0 0 12px rgba(240,82,82,.25); }
+  .t2 .mk-btn.pri { background: #F2B33D; color: #1A1204; box-shadow: 0 2px 12px rgba(242,179,61,.35); }
+  .t2 .mk-btn.sec { background: transparent; border-color: #2A3A57; color: #B9C6DA; }
+
+  /* ═══ แบบ 3: ราชการร่วมสมัย (Warm Official) ═══ */
+  .t3 { font-family: 'Sarabun', sans-serif; background: #F6F1E8; color: #33291E; }
+  .t3 .mk-side { background: #FFFDF8; border-right: 1px solid #E5DBC8; color: #7A6A52; }
+  .t3 .mk-logo { font-family: 'Pridi', serif; color: #7D2A33; font-size: 14px; }
+  .t3 .mk-logo small { font-family: 'Sarabun', sans-serif; color: #A08F75; }
+  .t3 .mk-nav.on { background: #F4E7E1; color: #7D2A33; font-weight: 700; }
+  .t3 .mk-top { background: #7D2A33; color: #F8EFE4; }
+  .t3 .mk-chipop { background: rgba(255,255,255,.16); color: #F3D8A9; border: 1px solid rgba(243,216,169,.4); }
+  .t3 .mk-card { background: #FFFDF8; border: 1px solid #E5DBC8; box-shadow: 0 2px 8px rgba(88,64,32,.07); }
+  .t3 .mk-cardtitle { font-family: 'Pridi', serif; color: #4A3A28; }
+  .t3 .mk-ic { background: #F3E7D3; }
+  .t3 .mk-f label { color: #8A7758; }
+  .t3 .mk-f .inp { background: #FBF7EF; border-color: #DACCB2; color: #6E5D45; }
+  .t3 .mk-tile { background: #FBF7EF; border-color: #DACCB2; color: #8A7758; }
+  .t3 .mk-tile.sel { background: #F4E0DD; border-color: #B8555E; color: #7D2A33; }
+  .t3 .mk-btn.pri { background: #7D2A33; color: #F8EFE4; box-shadow: 0 2px 8px rgba(125,42,51,.3); }
+  .t3 .mk-btn.sec { background: #FFFDF8; border-color: #DACCB2; color: #6E5D45; }
+
+  .footer-note { text-align: center; color: #9DA9B8; font-size: 14px; line-height: 1.9; }
+  .footer-note b { color: #E7ECF2; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="page-head">
+    <h1>เลือกดีไซน์ระบบบันทึกเหตุการณ์</h1>
+    <p>3 ทิศทาง · องค์ประกอบจริงจากหน้าฟอร์ม · ตอบแค่ "เอาแบบ 1 / 2 / 3"</p>
+  </div>
+
+  <!-- ═══════════ แบบ 1 ═══════════ -->
+  <div class="option">
+    <div class="opt-head"><span class="opt-num">แบบ 1</span><span class="opt-name">Calm Command — น้ำเงินราชการทันสมัย</span></div>
+    <p class="opt-desc">โทนกรมท่า-ฟ้าเทานุ่ม สว่าง สบายตาสำหรับงานกลางวันต่อเนื่องหลายชั่วโมง บุคลิก "หน่วยงานที่เป็นระบบ" — คือแบบที่อยู่ในหน้า preview ปัจจุบัน</p>
+    <div class="meta-row">
+      <span>ฟอนต์: <b>IBM Plex Sans Thai</b></span>
+      <div class="chips">สี: <span class="chip" style="background:#14355E"></span><span class="chip" style="background:#2B6CB8"></span><span class="chip" style="background:#EEF2F7"></span><span class="chip" style="background:#fff"></span></div>
+      <span>เหมาะกับ: ใช้งานกลางวัน · ทางการ · อ่านนาน</span>
+    </div>
+    <div class="mock t1">
+      <div class="mk-side">
+        <div class="mk-logo">ระบบบันทึกเหตุการณ์<small>กก.สืบสวน 3</small></div>
+        <div class="mk-nav on">📝 บันทึกเหตุ</div>
+        <div class="mk-nav">📊 สถิติ / Dashboard</div>
+        <div class="mk-nav">📋 รายการทั้งหมด</div>
+      </div>
+      <div class="mk-main">
+        <div class="mk-top">บันทึกเหตุการณ์ <span class="mk-chipop">ชป.ตาก · ด.ต. อนุ (สส3)</span></div>
+        <div class="mk-body">
+          <div class="mk-card">
+            <div class="mk-cardtitle"><span class="mk-ic">📋</span> ข้อมูลการเกิดเหตุ</div>
+            <div class="mk-grid">
+              <div class="mk-f"><label>วันที่เกิดเหตุ</label><div class="inp">14/07/2026</div></div>
+              <div class="mk-f"><label>เลขที่รายงาน</label><div class="inp">INC-260714-0001</div></div>
+            </div>
+            <div class="mk-tiles">
+              <div class="mk-tile sel"><span>🚨</span>เหตุอุกฉกรรจ์</div>
+              <div class="mk-tile"><span>🔍</span>เหตุน่าสนใจ</div>
+              <div class="mk-tile"><span>⚡</span>รายงานด่วน</div>
+            </div>
+            <div class="mk-actions"><div class="mk-btn sec">ล้างฟอร์ม</div><div class="mk-btn pri">💾 บันทึกข้อมูล</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════ แบบ 2 ═══════════ -->
+  <div class="option">
+    <div class="opt-head"><span class="opt-num">แบบ 2</span><span class="opt-name">Night Ops — ศูนย์ปฏิบัติการโหมดมืด</span></div>
+    <p class="opt-desc">พื้นมืดน้ำเงินเข้ม ตัดด้วยทอง-อำพันและฟ้าไซเบอร์ ลดแสงจ้าตอนเข้าเวรดึก ให้ความรู้สึก "ห้องวอร์รูม/ศูนย์สั่งการ" ดูล้ำและเท่ที่สุดใน 3 แบบ</p>
+    <div class="meta-row">
+      <span>ฟอนต์: <b>Noto Sans Thai</b></span>
+      <div class="chips">สี: <span class="chip" style="background:#0D1420"></span><span class="chip" style="background:#131D2E"></span><span class="chip" style="background:#F2B33D"></span><span class="chip" style="background:#67D3F5"></span></div>
+      <span>เหมาะกับ: เวรกลางคืน · จอใช้งานนาน · สายเท่</span>
+    </div>
+    <div class="mock t2">
+      <div class="mk-side">
+        <div class="mk-logo">ระบบบันทึกเหตุการณ์<small>กก.สืบสวน 3</small></div>
+        <div class="mk-nav on">📝 บันทึกเหตุ</div>
+        <div class="mk-nav">📊 สถิติ / Dashboard</div>
+        <div class="mk-nav">📋 รายการทั้งหมด</div>
+      </div>
+      <div class="mk-main">
+        <div class="mk-top">บันทึกเหตุการณ์ <span class="mk-chipop">ชป.ตาก · ด.ต. อนุ (สส3)</span></div>
+        <div class="mk-body">
+          <div class="mk-card">
+            <div class="mk-cardtitle"><span class="mk-ic">📋</span> ข้อมูลการเกิดเหตุ</div>
+            <div class="mk-grid">
+              <div class="mk-f"><label>วันที่เกิดเหตุ</label><div class="inp">14/07/2026</div></div>
+              <div class="mk-f"><label>เลขที่รายงาน</label><div class="inp">INC-260714-0001</div></div>
+            </div>
+            <div class="mk-tiles">
+              <div class="mk-tile sel"><span>🚨</span>เหตุอุกฉกรรจ์</div>
+              <div class="mk-tile"><span>🔍</span>เหตุน่าสนใจ</div>
+              <div class="mk-tile"><span>⚡</span>รายงานด่วน</div>
+            </div>
+            <div class="mk-actions"><div class="mk-btn sec">ล้างฟอร์ม</div><div class="mk-btn pri">💾 บันทึกข้อมูล</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════ แบบ 3 ═══════════ -->
+  <div class="option">
+    <div class="opt-head"><span class="opt-num">แบบ 3</span><span class="opt-name">ราชการร่วมสมัย — ครีมอบอุ่น + เลือดหมู</span></div>
+    <p class="opt-desc">พื้นครีมกระดาษ ตัดด้วยแดงเลือดหมูแบบครุฑ/ตราราชการ หัวข้อใช้ฟอนต์ Pridi มีเซอริฟไทยนิดๆ ให้ความรู้สึก "เอกสารราชการยุคใหม่" — น่าเชื่อถือ อบอุ่น ไม่เหมือนใคร</p>
+    <div class="meta-row">
+      <span>ฟอนต์: <b>Pridi (หัวข้อ) + Sarabun (เนื้อหา)</b></span>
+      <div class="chips">สี: <span class="chip" style="background:#7D2A33"></span><span class="chip" style="background:#F6F1E8"></span><span class="chip" style="background:#FFFDF8"></span><span class="chip" style="background:#C9A227"></span></div>
+      <span>เหมาะกับ: ภาพลักษณ์ราชการ · อบอุ่น · มีเอกลักษณ์สุด</span>
+    </div>
+    <div class="mock t3">
+      <div class="mk-side">
+        <div class="mk-logo">ระบบบันทึกเหตุการณ์<small>กก.สืบสวน 3</small></div>
+        <div class="mk-nav on">📝 บันทึกเหตุ</div>
+        <div class="mk-nav">📊 สถิติ / Dashboard</div>
+        <div class="mk-nav">📋 รายการทั้งหมด</div>
+      </div>
+      <div class="mk-main">
+        <div class="mk-top">บันทึกเหตุการณ์ <span class="mk-chipop">ชป.ตาก · ด.ต. อนุ (สส3)</span></div>
+        <div class="mk-body">
+          <div class="mk-card">
+            <div class="mk-cardtitle"><span class="mk-ic">📋</span> ข้อมูลการเกิดเหตุ</div>
+            <div class="mk-grid">
+              <div class="mk-f"><label>วันที่เกิดเหตุ</label><div class="inp">14/07/2026</div></div>
+              <div class="mk-f"><label>เลขที่รายงาน</label><div class="inp">INC-260714-0001</div></div>
+            </div>
+            <div class="mk-tiles">
+              <div class="mk-tile sel"><span>🚨</span>เหตุอุกฉกรรจ์</div>
+              <div class="mk-tile"><span>🔍</span>เหตุน่าสนใจ</div>
+              <div class="mk-tile"><span>⚡</span>รายงานด่วน</div>
+            </div>
+            <div class="mk-actions"><div class="mk-btn sec">ล้างฟอร์ม</div><div class="mk-btn pri">💾 บันทึกข้อมูล</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <p class="footer-note">
+    ตัดสินใจแล้วตอบแค่ <b>"เอาแบบ 1"</b> / <b>"เอาแบบ 2"</b> / <b>"เอาแบบ 3"</b><br>
+    หรือผสมได้ เช่น "เอาแบบ 1 แต่ใช้ฟอนต์ของแบบ 3" — เดี๋ยวทำธีมเต็มลงหน้า preview ให้ดูก่อนขึ้นจริง
+  </p>
+
+</div>
+</body>
+</html>
