@@ -1,0 +1,15 @@
+# ── ห้ามขึ้น repo สาธารณะเด็ดขาด ──
+secert_key/
+*.gs
+gas/
+
+# ── เอกสารภายใน (มีรายละเอียดระบบ/สูตร token) ──
+PROJECT_NOTES.md
+DESIGN_v2.md
+DESIGN_LINE_INTAKE.md
+INSTALL_v2.md
+CLAUDE.md
+
+# ── ไฟล์ทำงาน ──
+build_preview.py
+.claude/
